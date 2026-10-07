@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Could the universe be a computation?</title>
+<meta name="description" content="An interactive explainer of Stephen Wolfram's hypothesis that simple rules, applied over and over, could produce space, time, gravity and quantum mechanics. Play with the rules yourself.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ---------- design tokens ---------- */
+:root {
+  --ink: #0a0f1f;
+  --ink-2: #10172c;
+  --ink-3: #182238;
+  --ink-4: #22304d;
+  --paper: #f3ebdd;
+  --paper-dim: #b9b2a4;
+  --muted: #8a94ad;
+  --accent: #ffb547;
+  --accent-2: #ffd58a;
+  --accent-soft: rgba(255, 181, 71, 0.16);
+  --good: #7ad28a;
+  --line: rgba(243, 235, 221, 0.10);
+  --line-strong: rgba(243, 235, 221, 0.22);
+  --head: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  --radius: 14px;
+  --maxw: 980px;
+  --prose: 680px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 700px at 50% -120px, #1a2447 0%, var(--ink) 62%) fixed, var(--ink);
+  color: var(--paper);
+  font: 400 1.05rem/1.6 var(--body);
+  overflow-x: hidden;
+}
+/* subtle film grain, one tiled SVG so it costs almost nothing */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 90; pointer-events: none;
+  opacity: 0.075;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--accent); z-index: 95; transition: width .1s linear; }
+
+a { color: var(--accent-2); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: var(--accent); color: var(--ink); }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 16px; }
+.prose { max-width: var(--prose); }
+.prose p { margin: 0 0 1em; }
+p.lead { font-size: 1.25rem; line-height: 1.5; color: var(--paper); }
+small, .small { font-size: .88rem; color: var(--paper-dim); }
+.muted { color: var(--muted); }
+strong { font-weight: 600; color: #fff; }
+dfn { font-style: normal; font-weight: 600; color: var(--accent-2); }
+kbd { font: 500 .85em var(--mono); background: var(--ink-3); border: 1px solid var(--line-strong); border-radius: 5px; padding: 1px 5px; }
+.mono { font-family: var(--mono); }
+
+h1, h2, h3 { font-family: var(--head); font-weight: 700; line-height: 1; letter-spacing: .005em; margin: 0; color: #fff; }
+h1 { font-weight: 800; font-size: clamp(3rem, 10vw, 6.4rem); text-transform: uppercase; line-height: .92; }
+h2 { font-size: clamp(2.1rem, 5.5vw, 3.4rem); margin-bottom: 18px; }
+h3 { font-size: clamp(1.35rem, 3vw, 1.7rem); margin: 28px 0 10px; }
+.eyebrow { font: 500 .78rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+
+/* the "Wolfram's idea" tag */
+.tag {
+  display: inline-block; vertical-align: middle;
+  font: 600 .66rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 5px 8px 4px;
+  margin-right: 6px; white-space: nowrap; transform: translateY(-1px);
+}
+.idea { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; margin: 1.2em 0; }
+.idea p:last-child { margin-bottom: 0; }
+
+/* ---------- hero ---------- */
+.hero { padding: 96px 0 56px; position: relative; }
+.hero .kicker { font: 500 .85rem var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 22px; }
+.hero h1 span { display: block; }
+.hero h1 .thin { font-weight: 600; color: var(--paper-dim); }
+.hero .lead { margin-top: 26px; }
+.sky { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.sky canvas { width: 100%; height: 100%; display: block; opacity: .9; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 0; padding: 0; list-style: none; }
+.toc a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 999px; text-decoration: none; color: var(--paper-dim); font-size: .9rem; }
+.toc a:hover { border-color: var(--accent); color: var(--accent-2); }
+.toc a b { font-family: var(--mono); font-weight: 500; color: var(--accent); margin-right: 8px; }
+
+.notice { background: var(--ink-2); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 16px 18px; margin: 26px 0; max-width: var(--prose); }
+.notice p { margin: 0 0 .6em; } .notice p:last-child { margin: 0; }
+
+/* ---------- scenes ---------- */
+.scene { padding: 72px 0 56px; border-top: 1px solid var(--line); }
+.scene:target { scroll-margin-top: 24px; }
+.watch { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: .9rem; color: var(--paper-dim); text-decoration: none; }
+.watch:hover { color: var(--accent-2); }
+.watch svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+/* ---------- panels & controls ---------- */
+.panel { background: var(--ink-2); border: 1px solid var(--line); border-radius: 18px; padding: 14px; margin: 22px 0; }
+@media (min-width: 720px) { .panel { padding: 20px; } }
+.panel-title { font: 600 .95rem var(--body); color: var(--paper); margin: 0 0 10px; }
+.panel-title small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 0; }
+.toolbar .spacer { flex: 1; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45em;
+  min-height: 44px; min-width: 44px; padding: 0 16px;
+  border-radius: 11px; border: 1px solid var(--line-strong); background: var(--ink-3); color: var(--paper);
+  font: 500 .95rem var(--body); cursor: pointer; user-select: none; -webkit-user-select: none;
+  transition: background .15s, border-color .15s, transform .12s, color .15s;
+}
+.btn:hover { border-color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-2); }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-2); }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn.small { padding: 0 12px; font-size: .88rem; }
+.btn svg { width: 16px; height: 16px; fill: currentColor; }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 11px; overflow: hidden; }
+.seg .btn { border: 0; border-radius: 0; min-height: 44px; }
+.seg .btn + .btn { border-left: 1px solid var(--line-strong); }
+.readout { font: 500 .95rem/1.45 var(--body); color: var(--accent-2); margin: 10px 0 0; min-height: 1.4em; }
+.readout strong { color: #fff; }
+.readout.dim { color: var(--muted); }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 12px 0 0; }
+.stat { display: flex; flex-direction: column; min-width: 70px; }
+.stat b { font: 700 1.7rem/1 var(--head); color: #fff; }
+.stat span { font: 500 .72rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.stat.accent b { color: var(--accent); }
+label.field { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--paper-dim); }
+input[type="number"] { width: 5.2em; min-height: 44px; padding: 0 10px; font: 500 1rem var(--mono); color: var(--paper); background: var(--ink-3); border: 1px solid var(--line-strong); border-radius: 10px; }
+.range { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.range label { font-size: .9rem; color: var(--paper-dim); white-space: nowrap; }
+.range output { font: 500 1rem var(--mono); color: var(--accent-2); min-width: 2.2em; text-align: right; }
+input[type="range"] { flex: 1; min-width: 120px; height: 44px; margin: 0; accent-color: var(--accent); background: transparent; cursor: pointer; }
+canvas.view { display: block; width: 100%; height: auto; border-radius: 12px; background: var(--ink); touch-action: pan-y; }
+canvas.view:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.grid-2 { display: grid; gap: 14px; }
+@media (min-width: 760px) { .grid-2 { grid-template-columns: 3fr 2fr; align-items: start; } }
+.caption { font-size: .86rem; color: var(--muted); margin: 8px 0 0; }
+
+/* rule strip (scene 2) */
+.rule-strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-top: 8px; }
+.case {
+  display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 8px 2px 7px;
+  min-height: 44px; background: var(--ink-3); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; color: var(--paper);
+  transition: border-color .15s, background .15s;
+}
+.case:hover { border-color: var(--accent); }
+.case.reading { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
+.case .in { display: flex; gap: 2px; }
+.cell { width: 10px; height: 10px; border: 1px solid var(--paper-dim); background: transparent; border-radius: 2px; display: block; }
+.cell.on { background: var(--paper); border-color: var(--paper); }
+.case .arrow { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--muted); }
+.case .out .cell { width: 15px; height: 15px; transition: background .12s; }
+.case[aria-pressed="true"] .out .cell { background: var(--accent); border-color: var(--accent); }
+.case .lbl { font: 500 .6rem/1 var(--mono); color: var(--muted); letter-spacing: .04em; }
+@media (max-width: 480px) { .rule-strip { grid-template-columns: repeat(4, 1fr); gap: 6px; } }
+.rule-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-top: 10px; }
+.rule-name b { font: 700 2rem/1 var(--head); color: #fff; }
+.rule-name code { font: 500 1rem var(--mono); color: var(--accent-2); letter-spacing: .12em; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.mini-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; margin-top: 12px; }
+.mini { text-align: center; }
+.mini canvas { width: 100%; height: auto; display: block; border-radius: 6px; background: var(--ink); image-rendering: pixelated; }
+.mini span { display: block; font: 500 .75rem var(--mono); color: var(--muted); margin-top: 4px; }
+.classes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
+@media (min-width: 720px) { .classes { grid-template-columns: repeat(4, 1fr); } }
+.cls canvas { width: 100%; height: auto; display: block; border-radius: 8px; background: var(--ink); image-rendering: pixelated; }
+.cls b { display: block; font: 700 1.1rem/1.1 var(--head); color: #fff; margin-top: 8px; }
+.cls span { display: block; font-size: .82rem; color: var(--muted); }
+.feedback { margin-top: 10px; font-size: .95rem; min-height: 1.5em; }
+.feedback.good { color: var(--good); }
+.feedback.bad { color: var(--accent-2); }
+
+/* guess card */
+.guess { margin: 34px 0 6px; padding: 18px; border-radius: var(--radius); background: linear-gradient(180deg, rgba(255,181,71,.09), rgba(255,181,71,.025)); border: 1px solid rgba(255,181,71,.38); max-width: var(--prose); }
+.guess .eyebrow { margin-bottom: 8px; }
+.guess-q { font: 700 1.45rem/1.12 var(--head); color: #fff; margin: 0 0 14px; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt { text-align: left; line-height: 1.25; padding: 8px 14px; }
+.opt.chosen { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-2); }
+.opt.right { border-color: var(--good); color: var(--good); }
+.opt:disabled { opacity: .55; }
+.opt.right:disabled { opacity: 1; }
+.verdict { font: 700 1.05rem var(--head); letter-spacing: .02em; margin: 14px 0 0; color: var(--accent-2); }
+.verdict.good { color: var(--good); }
+.reveal { margin-top: 12px; padding-top: 14px; border-top: 1px dashed var(--line-strong); }
+.reveal[hidden] { display: none; }
+.reveal p { margin: 0 0 .8em; } .reveal p:last-child { margin-bottom: 0; }
+.rise { animation: rise .5s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* scene 3: rule picture */
+.rule-pic { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 6px 0 0; }
+.rule-pic svg { width: min(100%, 220px); height: auto; }
+.rule-pic .arrow-big { font: 700 2rem var(--head); color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .85rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; background: var(--paper-dim); }
+.legend i.new { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.legend i.path { background: var(--accent-2); }
+
+/* scene 4: meshes */
+.meshes { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
+@media (min-width: 720px) { .meshes { grid-template-columns: repeat(3, 1fr); } }
+.mesh { background: var(--ink); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+.mesh h4 { font: 700 1.2rem/1.1 var(--head); color: #fff; margin: 2px 0 2px; }
+.mesh .sub { font-size: .82rem; color: var(--muted); margin: 0 0 6px; }
+.mesh canvas.view { background: var(--ink-2); }
+.mesh .count { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
+.mesh .count b { font: 700 1.8rem/1 var(--head); color: var(--accent); }
+.mesh .count span { font: 500 .78rem var(--mono); color: var(--muted); }
+.earth { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: center; margin-top: 10px; }
+@media (min-width: 600px) { .earth { grid-template-columns: 1fr 1fr; } }
+.earth svg { width: 100%; height: auto; }
+.earth .lbl { font: 500 .78rem var(--mono); fill: var(--paper-dim); }
+.earth .big { font: 700 1.3rem var(--head); fill: var(--accent); }
+
+/* scene 5: multiway */
+.mw-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 8px; }
+.mw-svg { display: block; width: 100%; height: auto; font-family: var(--mono); }
+.mw-svg .edge { fill: none; stroke: var(--line-strong); stroke-width: 1.4; }
+.mw-svg .edge.lit { stroke: var(--accent); stroke-width: 2.2; }
+.mw-svg .edge.dim { stroke-opacity: .25; }
+.mw-svg .node { cursor: pointer; }
+.mw-svg .node rect { fill: var(--ink-3); stroke: var(--line-strong); stroke-width: 1.2; }
+.mw-svg .node.merged rect { stroke: var(--accent); stroke-width: 1.6; }
+.mw-svg .node.lit rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.mw-svg .node.dim { opacity: .3; }
+.mw-svg .node text { fill: var(--paper); font-size: 11px; font-weight: 500; }
+.mw-svg .node.lit text { fill: var(--accent-2); }
+.mw-svg .node:focus { outline: none; }
+.mw-svg .node:focus-visible rect { stroke: var(--accent-2); stroke-width: 2.5; }
+.mw-svg .badge rect { fill: var(--accent); stroke: none; }
+.mw-svg .badge text { fill: var(--ink); font-size: 9px; font-weight: 600; }
+.mw-svg .gen { fill: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+
+/* scene 6: coins */
+.coin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 0; }
+.coin-row .who { font: 500 .78rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); width: 100%; }
+.coin { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--ink-3); color: var(--paper); font: 700 1.25rem var(--head); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.coin:hover { border-color: var(--accent); }
+.coin.h { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.coin.t { background: var(--ink-4); border-color: var(--paper-dim); color: var(--paper); }
+.coin.unknown { color: var(--muted); border-style: dashed; }
+.coin.noise { color: var(--muted); border-style: dashed; font-family: var(--mono); font-weight: 400; }
+.coin.flip { animation: flip .5s ease; }
+@keyframes flip { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
+.coin.match { box-shadow: 0 0 0 3px var(--good); }
+.coin:disabled { cursor: default; }
+
+/* scene 7: wall */
+.wall canvas.view { background: var(--ink); }
+
+/* scene 8 */
+.bar { display: flex; height: 40px; border-radius: 10px; overflow: hidden; background: var(--ink-3); margin-top: 14px; }
+.bar div { width: 0; transition: width 1.2s cubic-bezier(.2,.7,.2,1); display: flex; align-items: center; justify-content: center; font: 700 1rem var(--head); color: var(--ink); white-space: nowrap; overflow: hidden; }
+.bar .ordinary { background: var(--accent); }
+.bar .dark-matter { background: #6c7aa6; color: #fff; }
+.bar .dark-energy { background: var(--ink-4); color: var(--paper); }
+.bar.show .ordinary { width: 5%; } .bar.show .dark-matter { width: 27%; } .bar.show .dark-energy { width: 68%; }
+@media (max-width: 560px) { .bar .ordinary { font-size: 0; } }
+.bar-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 10px; font-size: .88rem; color: var(--paper-dim); }
+.bar-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+.score { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+.score li { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: start; background: var(--ink-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.score .st { font: 600 .68rem/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding-top: 3px; }
+.score .st.yes { color: var(--good); } .score .st.maybe { color: var(--accent); } .score .st.no { color: #ff8e8e; }
+.score b { display: block; color: #fff; font-weight: 600; }
+.score span { font-size: .92rem; color: var(--paper-dim); }
+@media (max-width: 480px) { .score li { grid-template-columns: 1fr; gap: 4px; } }
+.sources { margin-top: 16px; padding-left: 1.2em; }
+.sources li { margin-bottom: .6em; }
+footer { padding: 40px 0 64px; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+
+#testbar { display: none; position: fixed; left: 12px; bottom: 12px; z-index: 96; background: var(--ink-3); border: 1px solid var(--accent); color: var(--paper); font: 500 .85rem var(--mono); padding: 10px 14px; border-radius: 10px; max-width: calc(100vw - 24px); }
+#testbar.fail { border-color: #ff8e8e; }
+
+/* ---------- motion preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .rise { animation: none; }
+  .coin.flip { animation: none; }
+  .bar div { transition: none; }
+  .btn, .case { transition: none; }
+}
+</style>
+</head>
+<body>
+<div id="progress" aria-hidden="true"></div>
+<div id="testbar" role="status"></div>
+
+<!-- ============ 1. HOOK ============ -->
+<header class="hero" id="s1">
+  <div class="sky" aria-hidden="true"><canvas id="sky"></canvas></div>
+  <div class="wrap">
+    <p class="kicker">An interactive explainer · about 20 minutes</p>
+    <h1><span>Could the whole</span><span>universe be a</span><span class="thin">computation?</span></h1>
+    <div class="prose">
+      <p class="lead">Stephen Wolfram is a physicist and software maker. His bet: underneath everything, the universe runs a tiny rule, over and over. Space, time, gravity and the odd behaviour of tiny particles would all grow out of that one rule.</p>
+      <p>A <dfn>computation</dfn> is just that: a rule, applied step by step. Nothing more mysterious.</p>
+      <p>This page lets you play with the pieces of that idea, one scene at a time. Each scene ends with a guess. Make it before you read the answer; that is where the learning happens.</p>
+    </div>
+    <div class="notice">
+      <p><strong>A hypothesis, not settled physics.</strong> Wolfram's picture is a serious, detailed proposal, but it has not yet made a prediction that an experiment has checked. Wherever this page describes one of his specific claims, you will see this tag: <span class="tag">Wolfram's idea</span></p>
+      <p>Everything without the tag is standard science you would find in a textbook.</p>
+    </div>
+    <ul class="toc" aria-label="Scenes">
+      <li><a href="#s2"><b>2</b>Simple rules</a></li>
+      <li><a href="#s3"><b>3</b>Space as a network</a></li>
+      <li><a href="#s4"><b>4</b>Dimension, curvature, gravity</a></li>
+      <li><a href="#s5"><b>5</b>Branching histories</a></li>
+      <li><a href="#s6"><b>6</b>Spooky action</a></li>
+      <li><a href="#s7"><b>7</b>Who made the rules?</a></li>
+      <li><a href="#s8"><b>8</b>The honest part</a></li>
+    </ul>
+
+    <div class="guess" id="g1">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">If the universe really runs on a rule, how long is the rule?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">Longer than every physics textbook combined</button>
+        <button class="btn opt" type="button">About a page</button>
+        <button class="btn opt" type="button">A few lines</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><span class="tag">Wolfram's idea</span> A few lines, maybe less. His reason is the whole of the next scene: tiny rules can make enormous complexity. Nobody has found the rule, so for now this is a hunch, not a fact. Hold your own guess in mind as you go.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 2. CELLULAR AUTOMATA ============ -->
+<section class="scene" id="s2">
+  <div class="wrap">
+    <p class="eyebrow">Scene 2</p>
+    <h2>Simple rules, wild results</h2>
+    <div class="prose">
+      <p class="lead">Here is the simplest kind of computation there is.</p>
+      <p>A row of cells. Each cell is either filled or empty. On every step, each cell looks at itself and its two neighbours, and a rule says whether it will be filled next. Rows pile up downward, so the picture is a history: the top row is the start, and each row below is the next step.</p>
+      <p>This toy is called a <dfn>cellular automaton</dfn>: cells, plus an automatic rule. Only one thing to learn before you play: the rule has exactly eight cases, one for each way three cells can look.</p>
+    </div>
+
+    <div class="panel" id="ca-panel">
+      <p class="panel-title">The rule <small>Eight cases, read from 111 down to 000 (left to right, then the next row on a phone). Tap an output, the square underneath, to flip it.</small></p>
+      <div class="rule-strip" id="rule-strip" role="group" aria-label="The eight cases of the rule"></div>
+      <div class="rule-name">
+        <span>Rule <b id="rule-num">30</b></span>
+        <code id="rule-bin" aria-label="rule in binary">00011110</code>
+        <span class="small">Read the outputs left to right as a binary number and you get the rule's name. 2 × 2 × 2 × 2 × 2 × 2 × 2 × 2 = 256 possible rules.</span>
+      </div>
+      <div class="presets" role="group" aria-label="Preset rules">
+        <button class="btn preset" type="button" data-rule="250">250 · simple</button>
+        <button class="btn preset" type="button" data-rule="90">90 · nested</button>
+        <button class="btn preset" type="button" data-rule="30">30 · random-looking</button>
+        <button class="btn preset" type="button" data-rule="110">110 · complex</button>
+        <label class="field">Any rule <input type="number" id="rule-input" min="0" max="255" value="30" aria-label="Rule number, 0 to 255"></label>
+        <button class="btn" type="button" id="ca-random-rule">Surprise me</button>
+      </div>
+      <p class="caption" id="preset-note" style="margin:10px 0 8px;color:var(--paper-dim)"></p>
+
+      <canvas class="view" id="ca-canvas" aria-label="The pattern made by the rule, growing downward from one filled cell. Use the buttons below to step or run it."></canvas>
+      <div class="toolbar">
+        <button class="btn" type="button" id="ca-step-cell" title="Compute one cell and show which three cells it reads">Step one cell</button>
+        <button class="btn" type="button" id="ca-step-row">Finish row</button>
+        <button class="btn primary" type="button" id="ca-run">Run</button>
+        <button class="btn" type="button" id="ca-reset">Reset</button>
+        <span class="spacer"></span>
+        <div class="seg" role="group" aria-label="Starting row">
+          <button class="btn" type="button" id="start-single" aria-pressed="true">One cell</button>
+          <button class="btn" type="button" id="start-random" aria-pressed="false">Random row</button>
+        </div>
+      </div>
+      <p class="readout" id="ca-readout">Press <strong>Step one cell</strong> to watch a single cell get computed, or <strong>Run</strong> to see the whole pattern.</p>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Challenge <small>Rule 72 kills the lone cell. Flip one case to keep it alive.</small></p>
+      <div class="toolbar">
+        <button class="btn primary" type="button" id="load-72">Load Rule 72</button>
+        <span class="small">Then tap one output square in the rule above and watch the pattern.</span>
+      </div>
+      <p class="feedback" id="challenge-feedback" aria-live="polite"></p>
+    </div>
+
+    <div class="guess" id="g2">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">There are 256 of these rules. Will most of them be interesting or boring?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">Mostly interesting</button>
+        <button class="btn opt" type="button">About half and half</button>
+        <button class="btn opt" type="button" data-right>Mostly boring</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><strong>Mostly boring.</strong> Here are twelve rules picked at random, each started from one cell. Most die out, freeze, or repeat. A few surprise you.</p>
+        <div class="mini-strip" id="random-strip"></div>
+        <div class="toolbar"><button class="btn small" type="button" id="shuffle-rules">Show twelve others</button></div>
+        <p style="margin-top:16px">Wolfram sorted the behaviour of all 256 rules into four classes. These four start from a random row, because that is how he compared them:</p>
+        <div class="classes" id="classes"></div>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top:28px">
+      <h3>Where this comes from</h3>
+      <p>John von Neumann and Stanisław Ulam invented cellular automata in the 1940s. John Conway's Game of Life made them famous in 1970. In the early 1980s Wolfram did something new: he studied the very simplest ones, all 256, systematically, and found that even these can look random or build complex structures. Rule 110 is the star: in 2004 Matthew Cook published a proof that it can run any program at all.</p>
+      <p>One more thing. The textile cone snail grows a Rule 30-like pattern on its shell. Nature seems to run little rules too.</p>
+      <a class="watch" href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=801s" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></svg>Watch Wolfram and Brian Greene on this (13:21)</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. SPACE AS A NETWORK ============ -->
+<section class="scene" id="s3">
+  <div class="wrap">
+    <p class="eyebrow">Scene 3</p>
+    <h2>Drop the grid: space as a network</h2>
+    <div class="prose">
+      <p class="lead">A grid of cells cheats.</p>
+      <p>It assumes space already exists (the cells sit in a row) and that a clock ticks (one row per step). Wolfram wants both to come <em>out</em> of the rule, not go into it.</p>
+      <p>So he keeps only two things: <dfn>dots</dfn>, and <dfn>links</dfn> between dots. A dot has no address and no coordinates. Its "location" is just which other dots it is linked to.</p>
+      <p class="small">He calls the whole thing a hypergraph, a network where one link can join more than two dots. Our links join two dots, which is enough to see the idea.</p>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">The rule <small>Find two links leaving the same dot. Replace them with four links and one brand-new dot.</small></p>
+      <div class="rule-pic" aria-label="Before: dot x linked to y and to z. After: x linked to z, and x, y and z all linked to a new dot w.">
+        <svg viewBox="0 0 220 120" aria-hidden="true">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b9b2a4"/></marker></defs>
+          <g stroke="#b9b2a4" stroke-width="2" marker-end="url(#ah)">
+            <line x1="60" y1="60" x2="150" y2="22"/><line x1="60" y1="60" x2="150" y2="98"/>
+          </g>
+          <g fill="#f3ebdd"><circle cx="60" cy="60" r="9"/><circle cx="160" cy="18" r="9"/><circle cx="160" cy="102" r="9"/></g>
+          <g font-family="IBM Plex Mono, monospace" font-size="13" fill="#8a94ad"><text x="40" y="85">x</text><text x="176" y="22">y</text><text x="176" y="107">z</text></g>
+        </svg>
+        <span class="arrow-big" aria-hidden="true">→</span>
+        <svg viewBox="0 0 220 120" aria-hidden="true">
+          <g stroke="#b9b2a4" stroke-width="2" marker-end="url(#ah)">
+            <line x1="40" y1="60" x2="150" y2="98"/>
+            <line x1="40" y1="60" x2="178" y2="60"/>
+            <line x1="160" y1="18" x2="186" y2="50"/>
+            <line x1="160" y1="102" x2="186" y2="70"/>
+          </g>
+          <g fill="#f3ebdd"><circle cx="40" cy="60" r="9"/><circle cx="160" cy="18" r="9"/><circle cx="160" cy="102" r="9"/></g>
+          <circle cx="190" cy="60" r="9" fill="#ffb547"/><circle cx="190" cy="60" r="14" fill="none" stroke="#ffb547" stroke-opacity=".45" stroke-width="3"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="13" fill="#8a94ad"><text x="22" y="85">x</text><text x="176" y="22">y</text><text x="176" y="107">z</text><text x="204" y="64" fill="#ffb547">w</text></g>
+        </svg>
+      </div>
+      <p class="caption">The arrows show which end of a link is "first"; the rule only fits two links that both <em>start</em> at the same dot. We start from one dot linked to itself twice.</p>
+
+      <canvas class="view" id="hg-canvas" aria-label="A growing network of dots and links. New dots glow gold."></canvas>
+      <div class="legend"><span><i class="new"></i>new dot this step</span><span><i></i>older dot</span><span><i class="path"></i>shortest path</span></div>
+      <div class="toolbar">
+        <button class="btn primary" type="button" id="hg-apply">Apply the rule everywhere it fits</button>
+        <button class="btn" type="button" id="hg-reset">Start over</button>
+      </div>
+      <div class="stats">
+        <div class="stat accent"><b id="hg-dots">1</b><span>dots</span></div>
+        <div class="stat"><b id="hg-links">2</b><span>links</span></div>
+        <div class="stat"><b id="hg-steps">0</b><span>presses</span></div>
+        <div class="stat"><b id="hg-events">0</b><span>events (rewrites)</span></div>
+      </div>
+      <p class="readout dim" id="hg-note">Each press finds every place the rule fits (without overlaps) and rewrites them all at once.</p>
+    </div>
+
+    <div class="prose">
+      <p>Each rewrite is an <dfn>event</dfn>. In this picture, time is nothing more than events piling up. There is no master clock. The button is only a convenience for you: nothing in the network knows how fast you press it, or whether two rewrites happened "at the same time".</p>
+      <div class="idea"><p><span class="tag">Wolfram's idea</span> The real universe would hold something like 10<sup>400</sup> of these dots, which he calls <dfn>atoms of space</dfn>. That is a 1 followed by 400 zeros. Everything you can see, including you, is a pattern in how they are linked.</p></div>
+    </div>
+
+    <div class="guess" id="g3">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">With no grid and no ruler, how would you measure the distance between two dots?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">You can't. Distance needs a ruler.</button>
+        <button class="btn opt" type="button">Measure how far apart they are drawn.</button>
+        <button class="btn opt" type="button" data-right>Count the fewest links from one to the other.</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><strong>Count links.</strong> The fewest links you can walk from one dot to another is the distance between them. Where the dots are drawn is only our layout, chosen to look tidy; the network itself knows nothing about it.</p>
+        <div class="toolbar"><button class="btn small" type="button" id="hg-path">Light up a shortest path in the network above</button></div>
+        <p class="readout" id="hg-readout"></p>
+      </div>
+    </div>
+    <div class="prose" style="margin-top:20px">
+      <a class="watch" href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=1470s" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></svg>Watch Wolfram describe the network (24:30)</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. DIMENSION, CURVATURE, GRAVITY ============ -->
+<section class="scene" id="s4">
+  <div class="wrap">
+    <p class="eyebrow">Scene 4</p>
+    <h2>From distance to dimension, curvature and gravity</h2>
+    <div class="prose">
+      <p class="lead">Once you can measure distance by counting links, you can measure a surprising amount.</p>
+      <h3>A. How many dimensions?</h3>
+      <p>Pick a dot. Grow a <dfn>ball</dfn> around it: every dot within <em>r</em> links. Count what is inside. On a line, the count grows in step with r. On a flat grid it grows like r × r. In a 3D lattice, like r × r × r. The power is the <dfn>dimension</dfn>. So a network can have a dimension even though nobody ever placed it in a space.</p>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar" style="margin-top:0">
+        <div class="seg" role="group" aria-label="Choose a network" id="dim-tabs">
+          <button class="btn" type="button" data-dim="1" aria-pressed="false">Line</button>
+          <button class="btn" type="button" data-dim="2" aria-pressed="true">Flat grid</button>
+          <button class="btn" type="button" data-dim="3" aria-pressed="false">3D lattice</button>
+        </div>
+        <span class="small">Tap a dot to pick it. Arrow keys move it; drag to spin the 3D lattice.</span>
+      </div>
+      <div class="grid-2">
+        <div>
+          <canvas class="view" id="dim-canvas" tabindex="0" aria-label="Dots of the chosen network. The picked dot and every dot within r links are highlighted. Arrow keys move the picked dot."></canvas>
+          <div class="range">
+            <label for="dim-range">Radius r</label>
+            <input type="range" id="dim-range" min="0" max="6" value="2">
+            <output id="dim-r" for="dim-range">2</output>
+          </div>
+        </div>
+        <div>
+          <div class="stats" style="margin-top:0">
+            <div class="stat accent"><b id="dim-count">13</b><span>dots within r</span></div>
+            <div class="stat"><b id="dim-est">2.0</b><span>dimension estimate</span></div>
+          </div>
+          <canvas class="view" id="dim-plot" aria-label="Plot of the number of dots inside the ball against its radius."></canvas>
+          <p class="caption" id="dim-note">Dots inside the ball, for every radius up to the one you chose. A straight line means one dimension; the harder it bends upward, the more dimensions. Tiny balls are lumpy, so the estimate wobbles for small r and settles as the ball grows.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="prose">
+      <h3>B. Curved or flat?</h3>
+      <p>Now a different test, on three meshes made of triangles. Where <strong>5</strong> triangles meet at every corner, the surface has to curl up into a ball (an icosahedron). With <strong>6</strong> it lies flat. With <strong>7</strong> there is too much material at every corner, so it ruffles into a saddle, like the edge of a lettuce leaf.</p>
+      <p>Same counting as before: grow a ball of radius r from the middle dot. The curled surface holds <em>fewer</em> dots than flat; the ruffled one holds <em>more</em>. That gap, compared with flat, is <dfn>curvature</dfn>, measured by counting.</p>
+    </div>
+    <div class="panel">
+      <div class="meshes">
+        <div class="mesh" data-q="5">
+          <h4>5 per corner</h4><p class="sub">curls into a ball</p>
+          <canvas class="view mesh-canvas" tabindex="0" aria-label="Icosahedron mesh. Drag or use arrow keys to rotate."></canvas>
+          <div class="range"><label>r</label><input type="range" class="mesh-range" min="0" max="3" value="2" aria-label="Radius on the ball"><output class="mesh-r">2</output></div>
+          <div class="count"><b class="mesh-count">11</b><span class="mesh-flat">flat would be 19</span></div>
+        </div>
+        <div class="mesh" data-q="6">
+          <h4>6 per corner</h4><p class="sub">lies flat</p>
+          <canvas class="view mesh-canvas" tabindex="0" aria-label="Flat triangle mesh. Drag or use arrow keys to rotate."></canvas>
+          <div class="range"><label>r</label><input type="range" class="mesh-range" min="0" max="3" value="2" aria-label="Radius on the flat mesh"><output class="mesh-r">2</output></div>
+          <div class="count"><b class="mesh-count">19</b><span class="mesh-flat">this is the flat reference</span></div>
+        </div>
+        <div class="mesh" data-q="7">
+          <h4>7 per corner</h4><p class="sub">ruffles into a saddle</p>
+          <canvas class="view mesh-canvas" tabindex="0" aria-label="Ruffled saddle mesh. Drag or use arrow keys to rotate."></canvas>
+          <div class="range"><label>r</label><input type="range" class="mesh-range" min="0" max="2" value="2" aria-label="Radius on the saddle"><output class="mesh-r">2</output></div>
+          <div class="count"><b class="mesh-count">29</b><span class="mesh-flat">flat would be 19</span></div>
+        </div>
+      </div>
+      <p class="caption">Drag any mesh to turn it. Gold dots are inside the ball. The saddle shows two layers, because a third already holds 85 dots and the page would have to fold it up like a lettuce leaf.</p>
+    </div>
+
+    <div class="guess" id="g4a">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">On the ball, will a radius-3 ball hold more dots or fewer than on the flat mesh?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">More</button>
+        <button class="btn opt" type="button">The same</button>
+        <button class="btn opt" type="button" data-right>Fewer</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><strong>Fewer: 12 against 37.</strong> On the icosahedron a radius of 3 already reaches the far side, so there is simply nothing more to count.</p>
+        <p><strong>The Earth check.</strong> Walk 10,000 km south from the North Pole and you reach the equator, which is about 40,000 km around. A flat circle with a 10,000 km radius would be about 63,000 km around. The Earth "holds less" than flat. That shortfall is its curvature, and you could measure it without ever leaving the ground.</p>
+        <div class="earth" aria-hidden="true">
+          <svg viewBox="0 0 300 200">
+            <circle cx="150" cy="105" r="80" fill="#182238" stroke="#b9b2a4" stroke-width="1.5"/>
+            <ellipse cx="150" cy="105" rx="80" ry="22" fill="none" stroke="#ffb547" stroke-width="2.5"/>
+            <path d="M150 25 A80 80 0 0 1 230 105" fill="none" stroke="#f3ebdd" stroke-width="2" stroke-dasharray="5 4"/>
+            <circle cx="150" cy="25" r="4" fill="#f3ebdd"/>
+            <text class="lbl" x="150" y="16" text-anchor="middle">North Pole</text>
+            <text class="lbl" x="216" y="54">10,000 km</text>
+            <text class="big" x="150" y="160" text-anchor="middle">40,000 km around</text>
+          </svg>
+          <svg viewBox="0 0 300 200">
+            <circle cx="150" cy="100" r="80" fill="#182238" stroke="#ffb547" stroke-width="2.5"/>
+            <line x1="150" y1="100" x2="230" y2="100" stroke="#f3ebdd" stroke-width="2" stroke-dasharray="5 4"/>
+            <circle cx="150" cy="100" r="4" fill="#f3ebdd"/>
+            <text class="lbl" x="190" y="92" text-anchor="middle">10,000 km</text>
+            <text class="lbl" x="150" y="40" text-anchor="middle">a flat disc</text>
+            <text class="big" x="150" y="195" text-anchor="middle">63,000 km around</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top:28px">
+      <h3>C. Why curvature is gravity</h3>
+      <p>Two walkers stand on the equator, one mile apart. Both walk due north, in perfectly straight lines, never turning left or right.</p>
+    </div>
+    <div class="guess" id="g4b">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">What happens to the gap between them?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">It grows</button>
+        <button class="btn opt" type="button">It stays one mile</button>
+        <button class="btn opt" type="button" data-right>It shrinks</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><strong>It shrinks, and they meet at the North Pole.</strong> Neither walker ever turned. The ground itself is curved, so straight paths drift together. Watch it happen:</p>
+      </div>
+    </div>
+    <div class="panel">
+      <canvas class="view" id="globe-canvas" aria-label="A globe with two walkers moving north from the equator along straight paths that meet at the pole."></canvas>
+      <div class="toolbar">
+        <button class="btn primary" type="button" id="globe-play">Walk north</button>
+        <div class="range" style="flex:1; margin:0; min-width:200px">
+          <label for="globe-range">Latitude</label>
+          <input type="range" id="globe-range" min="0" max="90" value="0">
+          <output id="globe-lat" for="globe-range">0°</output>
+        </div>
+      </div>
+      <p class="readout" id="globe-gap">Gap: 1.00 mile</p>
+      <p class="caption">The gap is drawn far wider than a mile so you can see it. The rule is exact though: at any latitude the gap is the starting gap times the cosine of the latitude, which reaches zero at the pole.</p>
+    </div>
+    <div class="prose">
+      <p>This is Einstein's picture of gravity. Things do not get "pulled". They follow the straightest possible path through curved <dfn>spacetime</dfn>, space and time taken together. For a falling apple, most of the curve is in time rather than space, which is why the effect feels like a pull toward the ground instead of a drift sideways.</p>
+      <div class="idea">
+        <p><span class="tag">Wolfram's idea</span> The ball-count mismatch in his network is the very curvature that sits in Einstein's equations. <dfn>Energy</dfn> is the amount of rewriting activity in a region, and activity curves the network, so matter bends space the way Einstein said. He has shown this works inside the model's own mathematics, under assumptions about what a typical huge network looks like.</p>
+        <p>The test he hopes for: the number of dimensions of space might fluctuate very slightly from place to place or time to time. Nobody has detected such a thing.</p>
+      </div>
+      <a class="watch" href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=1470s" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></svg>Watch Wolfram on getting Einstein's equations (24:30)</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. BRANCHING HISTORIES ============ -->
+<section class="scene" id="s5">
+  <div class="wrap">
+    <p class="eyebrow">Scene 5</p>
+    <h2>Branching histories and quantum mechanics</h2>
+    <div class="prose">
+      <p class="lead">Back in scene 3, the rule fitted in several places at once, and we rewrote them all. But often the places overlap, and then you must choose which goes first. Different choices give different networks.</p>
+      <div class="idea"><p><span class="tag">Wolfram's idea</span> The universe does not choose. It takes every option, so history <dfn>branches</dfn>. Unlike the popular "many worlds" picture, branches here can also <strong>merge</strong> again, whenever different orders arrive at the same state.</p></div>
+      <p>You can watch this with letters instead of networks. Two rules: <span class="mono">A → AB</span> and <span class="mono">B → A</span>. Each step, replace exactly one letter. Start from <span class="mono">A</span>. The map of every possible history is called a <dfn>multiway graph</dfn>.</p>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar" style="margin-top:0">
+        <button class="btn primary" type="button" id="mw-next">Next generation</button>
+        <button class="btn" type="button" id="mw-back">Back</button>
+        <button class="btn" type="button" id="mw-reset">Reset</button>
+      </div>
+      <p class="readout" id="mw-readout">Generation 0: one state, A. Press Next generation.</p>
+      <div class="mw-wrap" id="mw-wrap"><svg class="mw-svg" id="mw-svg" role="group" aria-label="Multiway graph of states. Each state is a button; activate it to light up every path leading to it."></svg></div>
+      <div class="legend"><span><i class="new"></i>gold ring + ×2: reached from two different earlier states (a merge)</span><span>Tap any state to light up every path that leads to it.</span></div>
+    </div>
+
+    <div class="guess" id="g5">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">If every branch really happens, why do we only ever experience one history?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">We happen to live in the one real branch</button>
+        <button class="btn opt" type="button" data-right>We are spread across nearby branches and our minds blend them into one story</button>
+        <button class="btn opt" type="button">Nobody knows, and nobody can</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><span class="tag">Wolfram's idea</span> We are enormous compared with the network, and we are spread across many nearby branches at once. Our brains stitch them into a single story. Nothing tells us where we sit in the map of branches (he calls that map <dfn>branchial space</dfn>), so individual outcomes look random. That, he says, is the randomness of quantum mechanics.</p>
+        <p>And everyone agrees on results for the same reason everyone on Earth sees the same night sky: we all sit close together in branchial space. It is a story with mathematics behind it, not yet a tested prediction.</p>
+      </div>
+    </div>
+    <div class="prose" style="margin-top:20px">
+      <a class="watch" href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=2955s" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></svg>Watch Wolfram on quantum mechanics from the network (49:15)</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. SPOOKY ACTION ============ -->
+<section class="scene" id="s6">
+  <div class="wrap">
+    <p class="eyebrow">Scene 6</p>
+    <h2>Spooky action and the speed limit</h2>
+    <div class="prose">
+      <p class="lead">First, the established science.</p>
+      <p>Make two particles together, send them far apart, and measure them. Their answers match far too reliably to be luck. Physicists call the pair <dfn>entangled</dfn>. Experiments since the 1970s have ruled out the obvious excuse, that the particles agreed on their answers in advance; the 2022 Nobel Prize in Physics went to three of the people who showed it. Einstein called the whole business spooky action at a distance.</p>
+      <div class="idea"><p><span class="tag">Wolfram's idea</span> The two particles share an ancestor in the branch map. So they are neighbours in branchial space even when they are far apart in ordinary space. Nothing travels between them; in the map, they were never really separate.</p></div>
+      <p>Here is the part that trips most people up. Try it.</p>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Magic coins <small>You and a friend each hold five magic coins. Each pair always lands the same way. Your friend is far away. Try to send a message.</small></p>
+      <div class="coin-row" id="target-row"><span class="who">1 · The message you want to send (tap to set heads or tails)</span></div>
+      <div class="coin-row" id="your-row"><span class="who">2 · Your coins (tap each to flip it)</span></div>
+      <div class="toolbar">
+        <button class="btn primary" type="button" id="flip-all">Flip all five</button>
+        <button class="btn" type="button" id="try-again">Try again</button>
+      </div>
+      <p class="readout" id="coin-readout">Set your message, then flip.</p>
+      <div class="coin-row" id="friend-row"><span class="who">3 · Your friend's coins, far away</span></div>
+      <div class="toolbar">
+        <button class="btn" type="button" id="compare" disabled>Compare notes (by ordinary phone call)</button>
+      </div>
+      <p class="readout dim" id="coin-stats">Attempts: 0 · times your coins spelled your message: 0</p>
+    </div>
+
+    <div class="guess" id="g6">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">Could you text your friend faster than light this way?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">Yes</button>
+        <button class="btn opt" type="button">Only with more coins</button>
+        <button class="btn opt" type="button" data-right>No</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><strong>No.</strong> You cannot choose how your coins land, so you cannot put a message into them. Your friend sees pure noise. The perfect match only shows up when you compare notes, and that comparison travels the slow way. Physicists call this the <dfn>no-communication theorem</dfn>, and it holds in quantum mechanics and in Wolfram's picture alike.</p>
+        <p class="small"><strong>Footnote.</strong> Matching coins alone could be faked with pre-agreed answers, like a pair of gloves split into two boxes. The real quantum twist, shown by <dfn>Bell tests</dfn>, is subtler: the particles' answers to several <em>different</em> questions match in a pattern that no pre-agreed list can reproduce. That is what the Nobel-winning experiments measured.</p>
+      </div>
+    </div>
+    <div class="prose" style="margin-top:20px">
+      <a class="watch" href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=2955s" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></svg>Watch Wolfram on branchial space (49:15)</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. WHO MADE THE RULES ============ -->
+<section class="scene" id="s7">
+  <div class="wrap">
+    <p class="eyebrow">Scene 7</p>
+    <h2>Who made the rules?</h2>
+    <div class="prose">
+      <p class="lead">If the universe runs on a rule, who wrote it?</p>
+      <div class="idea">
+        <p><span class="tag">Wolfram's idea</span> Nobody. In his picture, which he calls the <dfn>ruliad</dfn>, every possible rule runs in every possible way, all at once, all tangled together. Our universe is not one chosen rule. It is the slice of the whole tangle that observers like us are able to see.</p>
+        <p>His analogy: once 1, + and = are defined, 1 + 1 = 2 without anyone making it true. The rules of physics, he says, are like that. They are simply what is there.</p>
+      </div>
+    </div>
+    <div class="panel wall">
+      <p class="panel-title">Many rules, all running at once <small>A glimpse of the tangle: each tile is a different rule from scene 2, running on its own.</small></p>
+      <canvas class="view" id="wall-canvas" aria-label="A grid of many small cellular automata, each running a different rule."></canvas>
+    </div>
+    <div class="prose">
+      <p>Why would we see <em>these</em> laws and not others? <span class="tag">Wolfram's idea</span> Because of what kind of observers we are: beings who persist through time, who are tiny compared with the ruliad, and who assume the world is one consistent thing. Different kinds of observers would carve out different laws.</p>
+      <p><strong>Caveats.</strong> It is a hypothesis. Critics argue that Wolfram treats everything that is mathematically possible as physically real, which is a leap, not a measurement. And it does not settle "why is there anything at all?" for everyone: religious and philosophical answers to that question differ, and they are not the kind of thing a ball count can decide.</p>
+    </div>
+
+    <div class="guess" id="g7">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">Who wrote the rules of the universe?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">A designer</button>
+        <button class="btn opt" type="button">Blind chance</button>
+        <button class="btn opt" type="button">Nobody: they are like 1 + 1 = 2</button>
+        <button class="btn opt" type="button">The question has no answer</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p>There is no scoreboard for this one. <span class="tag">Wolfram's idea</span> is the third option: nobody, because every rule is already "there", the way 1 + 1 = 2 is there. Whether that counts as an answer, or just moves the question, is exactly what his critics debate.</p>
+      </div>
+    </div>
+    <div class="prose" style="margin-top:20px">
+      <a class="watch" href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=4487s" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></svg>Watch Wolfram on observers and the ruliad (1:14:47)</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. THE HONEST PART ============ -->
+<section class="scene" id="s8">
+  <div class="wrap">
+    <p class="eyebrow">Scene 8</p>
+    <h2>The honest part</h2>
+    <div class="prose">
+      <p class="lead">What the model explains, what it hopes to explain, and what it has not touched.</p>
+    </div>
+
+    <div class="guess" id="g8">
+      <p class="eyebrow">Make a guess</p>
+      <p class="guess-q">What share of the universe is ordinary matter: the atoms in stars, planets and you?</p>
+      <div class="opts" role="group" aria-label="Your guess">
+        <button class="btn opt" type="button">Nearly all of it</button>
+        <button class="btn opt" type="button">About half</button>
+        <button class="btn opt" type="button" data-right>About 5%</button>
+      </div>
+      <p class="verdict" hidden></p>
+      <div class="reveal" hidden>
+        <p><strong>About 5%.</strong> The rest is <dfn>dark matter</dfn>, unseen stuff that pulls on galaxies (about 27%), and <dfn>dark energy</dfn>, whatever is speeding up the expansion of space (about 68%). Any theory of everything has to account for all three.</p>
+        <div class="bar" id="bar" role="img" aria-label="Ordinary matter 5 percent, dark matter 27 percent, dark energy 68 percent">
+          <div class="ordinary">5%</div><div class="dark-matter">27%</div><div class="dark-energy">68%</div>
+        </div>
+        <div class="bar-legend"><span><i style="background:var(--accent)"></i>ordinary matter · 5%</span><span><i style="background:#6c7aa6"></i>dark matter · 27%</span><span><i style="background:var(--ink-4)"></i>dark energy · 68%</span></div>
+      </div>
+    </div>
+
+    <ul class="score" aria-label="Scorecard">
+      <li><span class="st maybe">Worked out</span><div><b>Space and time from a network</b><span>A detailed story with mathematics behind it, resting on assumptions about what a typical huge network looks like.</span></div></li>
+      <li><span class="st maybe">Worked out</span><div><b>Einstein's gravity</b><span>Derived inside the model for enormous networks, with the same assumptions.</span></div></li>
+      <li><span class="st maybe">A story</span><div><b>Quantum mechanics</b><span>Branching and merging histories reproduce some known formulas. Not yet a new, checkable prediction.</span></div></li>
+      <li><span class="st no">No model yet</span><div><b>Particles: electrons, photons, quarks</b><span>Wolfram says plainly that he does not yet have a model of what a particle is in the network.</span></div></li>
+      <li><span class="st no">A guess</span><div><b>Dark matter</b><span>His idea is something like heat in spacetime itself: leftover activity in the network that pulls but cannot be seen. He calls it unproven.</span></div></li>
+      <li><span class="st no">Not yet</span><div><b>A prediction an experiment can test</b><span>Many physicists say this is the key gap: the model has not yet predicted something new that anyone can go and measure.</span></div></li>
+    </ul>
+
+    <div class="prose" style="margin-top:32px">
+      <h3>Sources</h3>
+      <ol class="sources">
+        <li>Stephen Wolfram in conversation with Brian Greene, World Science Festival, June 2025: <a href="https://www.youtube.com/watch?v=yAJTctpzp5w" target="_blank" rel="noopener">Can space and time emerge from simple rules?</a> Scenes above link to <a href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=801s" target="_blank" rel="noopener">13:21</a>, <a href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=1470s" target="_blank" rel="noopener">24:30</a>, <a href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=2955s" target="_blank" rel="noopener">49:15</a> and <a href="https://www.youtube.com/watch?v=yAJTctpzp5w&amp;t=4487s" target="_blank" rel="noopener">1:14:47</a>.</li>
+        <li>Stephen Wolfram, <a href="https://writings.stephenwolfram.com/2020/04/finally-we-may-have-a-path-to-the-fundamental-theory-of-physics-and-its-beautiful/" target="_blank" rel="noopener">Finally We May Have a Path to the Fundamental Theory of Physics… and It's Beautiful</a> (2020).</li>
+        <li>Stephen Wolfram, <a href="https://writings.stephenwolfram.com/2026/02/what-ultimately-is-there-metaphysics-and-the-ruliad/" target="_blank" rel="noopener">What Ultimately Is There? Metaphysics and the Ruliad</a> (2026).</li>
+        <li>Stephen Wolfram, <a href="https://www.wolframscience.com/nks/" target="_blank" rel="noopener">A New Kind of Science</a>, free online (2002). Rule 30, Rule 110 and the four classes come from here.</li>
+      </ol>
+      <p class="small">Also drawn on: Matthew Cook, "Universality in Elementary Cellular Automata", Complex Systems 15 (2004); the 2022 Nobel Prize in Physics to Alain Aspect, John Clauser and Anton Zeilinger; the Planck mission's 5 / 27 / 68 split of the universe's contents.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>An independent explainer. Not affiliated with Stephen Wolfram or Wolfram Research; no logos or branding are used, and nothing here is a quotation. Wolfram's claims are paraphrased from the linked sources, and marked with the <span class="tag">Wolfram's idea</span> tag. Everything else is standard physics.</p>
+    <p>Built as one self-contained page: no frameworks, no server. Open it with <span class="mono">?test</span> on the end of the address to run the built-in checks.</p>
+  </div>
+</footer>
+
+<script id="cu-logic">
+/* ============================================================
+   CU: pure simulation logic. No DOM, no drawing, no timers.
+   Every function here takes plain data and returns plain data.
+   ============================================================ */
+var CU = (function () {
+  'use strict';
+
+  /* ---------- Seeded random numbers (mulberry32) ---------- */
+  function mulberry32(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ---------- Elementary cellular automata ----------
+     A rule is a number 0..255. bits[c] is the output for the
+     neighbourhood code c = 4*left + 2*center + right, so reading
+     the outputs from case 111 down to case 000 gives the rule
+     number in binary (Rule 30 = 00011110). Rows wrap around. */
+  function ruleToBits(rule) {
+    var bits = new Uint8Array(8);
+    for (var c = 0; c < 8; c++) bits[c] = (rule >> c) & 1;
+    return bits;
+  }
+  function bitsToRule(bits) {
+    var rule = 0;
+    for (var c = 0; c < 8; c++) if (bits[c]) rule |= (1 << c);
+    return rule;
+  }
+  function ruleBinary(rule) {
+    var s = '';
+    for (var c = 7; c >= 0; c--) s += (rule >> c) & 1;
+    return s;
+  }
+  function caCode(row, i) {
+    var n = row.length;
+    return 4 * row[(i - 1 + n) % n] + 2 * row[i] + row[(i + 1) % n];
+  }
+  function caStep(row, bits) {
+    var n = row.length, out = new Uint8Array(n);
+    for (var i = 0; i < n; i++) out[i] = bits[caCode(row, i)];
+    return out;
+  }
+  function singleCellRow(width) {
+    var row = new Uint8Array(width);
+    row[width >> 1] = 1;
+    return row;
+  }
+  function randomRow(width, rng) {
+    var row = new Uint8Array(width);
+    for (var i = 0; i < width; i++) row[i] = rng() < 0.5 ? 1 : 0;
+    return row;
+  }
+  function caRun(rule, firstRow, steps) {
+    var bits = ruleToBits(rule), rows = [firstRow];
+    for (var s = 0; s < steps; s++) rows.push(caStep(rows[rows.length - 1], bits));
+    return rows;
+  }
+  /* Offsets (from the middle cell) of the filled cells in a row. */
+  function filledOffsets(row) {
+    var mid = row.length >> 1, out = [];
+    for (var i = 0; i < row.length; i++) if (row[i]) out.push(i - mid);
+    return out;
+  }
+  /* Span of cells that can change on the next step: one beyond
+     the outermost filled cell on each side (null if the row is empty
+     or completely full). Used by the step-by-step mode so the
+     reader is not asked to step across hundreds of empty cells. */
+  function activeSpan(row) {
+    var lo = -1, hi = -1;
+    for (var i = 0; i < row.length; i++) if (row[i]) { if (lo < 0) lo = i; hi = i; }
+    if (lo < 0) return null;
+    return { lo: Math.max(0, lo - 1), hi: Math.min(row.length - 1, hi + 1) };
+  }
+  /* A handful of distinct rule numbers drawn with a seed. */
+  function pickRules(seed, count) {
+    var rng = mulberry32(seed), out = [], seen = {};
+    while (out.length < count) {
+      var r = Math.floor(rng() * 256);
+      if (!seen[r]) { seen[r] = true; out.push(r); }
+    }
+    return out;
+  }
+
+  /* ---------- Network rewriting (Wolfram-style hypergraph) ----------
+     Links are ordered pairs [a, b]. The rule
+        {{x,y},{x,z}} -> {{x,z},{x,w},{y,w},{z,w}}
+     fires on any two distinct links that start at the same dot x and
+     creates a brand-new dot w. One "step" fires it on as many
+     non-overlapping matches as it can find (greedy, in link order). */
+  function hgInitial() {
+    return { edges: [[0, 0], [0, 0]], nextId: 1, generation: 0, events: 0, newNodes: [], lastEvents: 0 };
+  }
+  function hgStep(state) {
+    var edges = state.edges, n = edges.length;
+    var byFirst = new Map();
+    for (var i = 0; i < n; i++) {
+      var x = edges[i][0];
+      if (!byFirst.has(x)) byFirst.set(x, []);
+      byFirst.get(x).push(i);
+    }
+    var partner = new Int32Array(n), role = new Int8Array(n);
+    byFirst.forEach(function (idxs) {
+      for (var k = 0; k + 1 < idxs.length; k += 2) {
+        partner[idxs[k]] = idxs[k + 1]; role[idxs[k]] = 1;
+        partner[idxs[k + 1]] = idxs[k]; role[idxs[k + 1]] = 2;
+      }
+    });
+    var out = [], nextId = state.nextId, newNodes = [], fired = 0;
+    for (i = 0; i < n; i++) {
+      if (role[i] === 2) continue;
+      if (role[i] === 1) {
+        var e1 = edges[i], e2 = edges[partner[i]];
+        var X = e1[0], Y = e1[1], Z = e2[1], W = nextId++;
+        out.push([X, Z], [X, W], [Y, W], [Z, W]);
+        newNodes.push(W);
+        fired++;
+      } else {
+        out.push(edges[i]);
+      }
+    }
+    return { edges: out, nextId: nextId, generation: state.generation + 1,
+             events: state.events + fired, newNodes: newNodes, lastEvents: fired };
+  }
+  function hgNodeCount(edges) {
+    var s = new Set();
+    for (var i = 0; i < edges.length; i++) { s.add(edges[i][0]); s.add(edges[i][1]); }
+    return s.size;
+  }
+  /* Undirected adjacency (self-loops dropped) for path finding. */
+  function hgAdjacency(edges, nodeCount) {
+    var adj = [];
+    for (var i = 0; i < nodeCount; i++) adj.push([]);
+    for (i = 0; i < edges.length; i++) {
+      var a = edges[i][0], b = edges[i][1];
+      if (a === b) continue;
+      if (adj[a].indexOf(b) < 0) adj[a].push(b);
+      if (adj[b].indexOf(a) < 0) adj[b].push(a);
+    }
+    return adj;
+  }
+
+  /* ---------- Graph distance ---------- */
+  function bfs(adj, start) {
+    var n = adj.length, dist = new Int32Array(n);
+    for (var i = 0; i < n; i++) dist[i] = -1;
+    var queue = [start]; dist[start] = 0;
+    for (var h = 0; h < queue.length; h++) {
+      var u = queue[h], nb = adj[u];
+      for (var k = 0; k < nb.length; k++) {
+        var v = nb[k];
+        if (dist[v] < 0) { dist[v] = dist[u] + 1; queue.push(v); }
+      }
+    }
+    return dist;
+  }
+  /* Shortest chain of dots from a to b (inclusive), or null. */
+  function shortestPath(adj, a, b) {
+    var n = adj.length, prev = new Int32Array(n);
+    for (var i = 0; i < n; i++) prev[i] = -2;
+    var queue = [a]; prev[a] = -1;
+    for (var h = 0; h < queue.length; h++) {
+      var u = queue[h];
+      if (u === b) break;
+      var nb = adj[u];
+      for (var k = 0; k < nb.length; k++) {
+        var v = nb[k];
+        if (prev[v] === -2) { prev[v] = u; queue.push(v); }
+      }
+    }
+    if (prev[b] === -2) return null;
+    var path = [];
+    for (var c = b; c !== -1; c = prev[c]) path.push(c);
+    return path.reverse();
+  }
+  /* counts[r] = number of dots within r links of start (r = 0..rmax). */
+  function ballCounts(adj, start, rmax) {
+    var dist = bfs(adj, start), shells = new Array(rmax + 1).fill(0);
+    for (var i = 0; i < dist.length; i++) {
+      var d = dist[i];
+      if (d >= 0 && d <= rmax) shells[d]++;
+    }
+    var counts = [], total = 0;
+    for (var r = 0; r <= rmax; r++) { total += shells[r]; counts.push(total); }
+    return counts;
+  }
+  /* Dimension from how fast the ball grows: the shell at radius r
+     holds about r^(D-1) dots, so compare the two outermost shells.
+     Exact for a line (1) and a square grid (2); creeps up toward 3
+     for a cubic lattice as r grows. NaN if there is too little data. */
+  function estimateDimension(counts) {
+    var r = counts.length - 1;
+    while (r >= 2 && !(counts[r] > counts[r - 1] && counts[r - 1] > counts[r - 2])) r--;
+    if (r < 2) return NaN;
+    var s1 = counts[r] - counts[r - 1], s0 = counts[r - 1] - counts[r - 2];
+    return 1 + Math.log(s1 / s0) / Math.log(r / (r - 1));
+  }
+
+  /* ---------- Regular lattices: line, square grid, cubic ----------
+     dim = 1, 2 or 3; n dots along each axis (use an odd n so there
+     is a middle dot). Coordinates are centred on 0. */
+  function makeLattice(dim, n) {
+    var count = Math.pow(n, dim), nodes = [], adj = [], half = (n - 1) / 2;
+    function index(x, y, z) { return x + n * (y + n * z); }
+    for (var z = 0; z < (dim > 2 ? n : 1); z++)
+      for (var y = 0; y < (dim > 1 ? n : 1); y++)
+        for (var x = 0; x < n; x++) {
+          var i = index(x, y, z);
+          nodes[i] = { x: x - half, y: dim > 1 ? y - half : 0, z: dim > 2 ? z - half : 0, ix: x, iy: y, iz: z };
+          var nb = [];
+          if (x > 0) nb.push(index(x - 1, y, z));
+          if (x < n - 1) nb.push(index(x + 1, y, z));
+          if (dim > 1 && y > 0) nb.push(index(x, y - 1, z));
+          if (dim > 1 && y < n - 1) nb.push(index(x, y + 1, z));
+          if (dim > 2 && z > 0) nb.push(index(x, y, z - 1));
+          if (dim > 2 && z < n - 1) nb.push(index(x, y, z + 1));
+          adj[i] = nb;
+        }
+    var c = dim === 1 ? half : dim === 2 ? index(half, half, 0) : index(half, half, half);
+    return { dim: dim, n: n, count: count, nodes: nodes, adj: adj, center: c, index: index };
+  }
+  /* Largest radius whose ball does not touch the edge of the lattice. */
+  function cleanRadius(lat, i) {
+    var p = lat.nodes[i], n = lat.n, m = Math.min(p.ix, n - 1 - p.ix);
+    if (lat.dim > 1) m = Math.min(m, p.iy, n - 1 - p.iy);
+    if (lat.dim > 2) m = Math.min(m, p.iz, n - 1 - p.iz);
+    return m;
+  }
+
+  /* ---------- Triangle meshes with q triangles at every corner ----------
+     q = 5 curls into a ball (an icosahedron), q = 6 lies flat,
+     q = 7 ruffles into a saddle. Built layer by layer around a
+     centre dot; each dot gets a layer (its distance from the centre)
+     and a parameter t in [0,1) giving its angle around the centre.
+     'ring' is the outermost cycle, in order. */
+  function buildTriMesh(q, layers) {
+    var adj = [], layer = [], t = [];
+    function addNode(L, tt) { adj.push([]); layer.push(L); t.push(((tt % 1) + 1) % 1); return adj.length - 1; }
+    function link(a, b) {
+      if (a === b || adj[a].indexOf(b) >= 0) return;
+      adj[a].push(b); adj[b].push(a);
+    }
+    var center = addNode(0, 0), ring = [], i, j;
+    for (i = 0; i < q; i++) ring.push(addNode(1, i / q));
+    for (i = 0; i < q; i++) { link(center, ring[i]); link(ring[i], ring[(i + 1) % q]); }
+    var closed = false;
+    for (var L = 2; L <= layers && !closed; L++) {
+      var B = ring, m = B.length, deficits = [];
+      for (i = 0; i < m; i++) deficits.push(q - adj[B[i]].length);
+      var allOne = true, anyBad = false;
+      for (i = 0; i < m; i++) { if (deficits[i] !== 1) allOne = false; if (deficits[i] < 1) anyBad = true; }
+      if (anyBad) throw new Error('mesh construction: boundary dot already full');
+      if (allOne) {
+        var apex = addNode(L, 0);
+        for (i = 0; i < m; i++) link(B[i], apex);
+        ring = [apex]; closed = true; break;
+      }
+      /* one new dot on every boundary edge (B[i], B[i+1]) */
+      var edgeNode = [];
+      for (i = 0; i < m; i++) {
+        var ta = t[B[i]], tb = t[B[(i + 1) % m]], gap = ((tb - ta) % 1 + 1) % 1;
+        if (gap === 0) gap = 1;
+        edgeNode.push(addNode(L, ta + gap / 2));
+      }
+      var newRing = [];
+      for (i = 0; i < m; i++) {
+        var v = B[i], k = deficits[i];
+        if (k < 2) throw new Error('mesh construction: mixed closure not supported');
+        var prev = edgeNode[(i - 1 + m) % m], next = edgeNode[i];
+        var tp = t[prev], tn = t[next];
+        var span = ((tn - tp) % 1 + 1) % 1; if (span === 0) span = 1;
+        var path = [prev];
+        for (j = 0; j < k - 2; j++) path.push(addNode(L, tp + span * (j + 1) / (k - 1)));
+        path.push(next);
+        for (j = 0; j < path.length; j++) link(v, path[j]);
+        for (j = 0; j + 1 < path.length; j++) link(path[j], path[j + 1]);
+        for (j = 0; j + 1 < path.length; j++) newRing.push(path[j]);
+      }
+      ring = newRing;
+    }
+    return { q: q, adj: adj, layer: layer, t: t, count: adj.length, center: center, closed: closed };
+  }
+
+  /* Starting 3D positions for a mesh: a sphere for q = 5, a disc for
+     q = 6, a gently saddled disc for q = 7. relaxMesh then pulls
+     every link toward the same length. */
+  function meshSeedPositions(mesh) {
+    var n = mesh.count, pos = new Float64Array(3 * n), q = mesh.q;
+    for (var i = 0; i < n; i++) {
+      var L = mesh.layer[i], a = 2 * Math.PI * mesh.t[i], x, y, z;
+      if (q === 5) {
+        var maxL = 3, phi = Math.PI * L / maxL;              /* 0 at top, pi at bottom */
+        if (L === 1) phi = Math.acos(1 / Math.sqrt(5));
+        if (L === 2) phi = Math.acos(-1 / Math.sqrt(5));
+        x = Math.sin(phi) * Math.cos(a); y = Math.sin(phi) * Math.sin(a); z = Math.cos(phi);
+        x *= 1.05; y *= 1.05; z *= 1.05;                      /* icosahedron edge ~1.05 for radius 1 */
+      } else if (q === 6) {
+        x = L * Math.cos(a); y = L * Math.sin(a); z = 0;
+      } else {
+        /* a saddle: the extra material at every corner has somewhere to go */
+        x = L * Math.cos(a); y = L * Math.sin(a); z = 0.5 * L * L * Math.cos(2 * a);
+      }
+      pos[3 * i] = x; pos[3 * i + 1] = y; pos[3 * i + 2] = z;
+    }
+    return pos;
+  }
+  /* All triangles (i < j < k, mutually linked) of a mesh. */
+  function meshTriangles(mesh) {
+    var tris = [], adj = mesh.adj;
+    for (var i = 0; i < mesh.count; i++) for (var a = 0; a < adj[i].length; a++) for (var b = a + 1; b < adj[i].length; b++) {
+      var j = adj[i][a], k = adj[i][b];
+      if (j > i && k > i && adj[j].indexOf(k) >= 0) tris.push(j < k ? [i, j, k] : [i, k, j]);
+    }
+    return tris;
+  }
+  function relaxMesh(mesh, pos, iterations, flat, smooth) {
+    var n = mesh.count, adj = mesh.adj, i, j, k, it;
+    smooth = smooth || 0;
+    var edges = [];
+    for (i = 0; i < n; i++) for (k = 0; k < adj[i].length; k++) if (adj[i][k] > i) edges.push([i, adj[i][k]]);
+    var disp = new Float64Array(3 * n);
+    for (it = 0; it < iterations; it++) {
+      for (i = 0; i < 3 * n; i++) disp[i] = 0;
+      /* springs: every link wants length 1 */
+      for (k = 0; k < edges.length; k++) {
+        var a = edges[k][0], b = edges[k][1];
+        var dx = pos[3 * b] - pos[3 * a], dy = pos[3 * b + 1] - pos[3 * a + 1], dz = pos[3 * b + 2] - pos[3 * a + 2];
+        var d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
+        var f = 0.5 * (d - 1) / d;
+        disp[3 * a] += f * dx; disp[3 * a + 1] += f * dy; disp[3 * a + 2] += f * dz;
+        disp[3 * b] -= f * dx; disp[3 * b + 1] -= f * dy; disp[3 * b + 2] -= f * dz;
+      }
+      /* gentle push between dots that are not linked but sit too close */
+      for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) {
+        var ex = pos[3 * j] - pos[3 * i], ey = pos[3 * j + 1] - pos[3 * i + 1], ez = pos[3 * j + 2] - pos[3 * i + 2];
+        var d2 = ex * ex + ey * ey + ez * ez;
+        if (d2 < 0.81 && adj[i].indexOf(j) < 0) {
+          var dd = Math.sqrt(d2) || 1e-6, g = 0.25 * (0.9 - dd) / dd;
+          disp[3 * i] -= g * ex; disp[3 * i + 1] -= g * ey; disp[3 * i + 2] -= g * ez;
+          disp[3 * j] += g * ex; disp[3 * j + 1] += g * ey; disp[3 * j + 2] += g * ez;
+        }
+      }
+      /* optional smoothing: pull each dot toward the middle of its neighbours,
+         which keeps a ruffled surface looking like a surface */
+      if (smooth > 0) for (i = 0; i < n; i++) {
+        var nb = adj[i], cx0 = 0, cy0 = 0, cz0 = 0;
+        for (k = 0; k < nb.length; k++) { cx0 += pos[3 * nb[k]]; cy0 += pos[3 * nb[k] + 1]; cz0 += pos[3 * nb[k] + 2]; }
+        disp[3 * i] += smooth * (cx0 / nb.length - pos[3 * i]);
+        disp[3 * i + 1] += smooth * (cy0 / nb.length - pos[3 * i + 1]);
+        disp[3 * i + 2] += smooth * (cz0 / nb.length - pos[3 * i + 2]);
+      }
+      for (i = 0; i < n; i++) {
+        pos[3 * i] += 0.5 * disp[3 * i]; pos[3 * i + 1] += 0.5 * disp[3 * i + 1];
+        if (!flat) pos[3 * i + 2] += 0.5 * disp[3 * i + 2];
+      }
+    }
+    /* re-centre on the middle dot */
+    var cx = pos[3 * mesh.center], cy = pos[3 * mesh.center + 1], cz = pos[3 * mesh.center + 2];
+    if (mesh.q === 5) { /* keep the sphere centred on the origin, not on the top dot */
+      cx = 0; cy = 0; cz = 0;
+      for (i = 0; i < n; i++) { cx += pos[3 * i] / n; cy += pos[3 * i + 1] / n; cz += pos[3 * i + 2] / n; }
+    }
+    for (i = 0; i < n; i++) { pos[3 * i] -= cx; pos[3 * i + 1] -= cy; pos[3 * i + 2] -= cz; }
+    return pos;
+  }
+  function meshEdgeStats(mesh, pos) {
+    var min = Infinity, max = 0, sum = 0, cnt = 0;
+    for (var i = 0; i < mesh.count; i++) for (var k = 0; k < mesh.adj[i].length; k++) {
+      var j = mesh.adj[i][k]; if (j < i) continue;
+      var dx = pos[3 * j] - pos[3 * i], dy = pos[3 * j + 1] - pos[3 * i + 1], dz = pos[3 * j + 2] - pos[3 * i + 2];
+      var d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (d < min) min = d; if (d > max) max = d; sum += d; cnt++;
+    }
+    return { min: min, max: max, mean: sum / cnt };
+  }
+
+  /* ---------- Multiway system on strings ----------
+     rules: [["A","AB"],["B","A"]]. One letter is replaced per step.
+     Returns one layer per generation: states (strings), preds
+     (indices of the previous-generation states that lead there) and
+     ways (how many different previous states lead there). */
+  function multiway(rules, start, gens) {
+    var layers = [{ states: [start], preds: [[]], ways: [0] }];
+    for (var g = 1; g <= gens; g++) {
+      var prev = layers[g - 1], map = new Map(), order = [];
+      for (var pi = 0; pi < prev.states.length; pi++) {
+        var s = prev.states[pi];
+        for (var i = 0; i < s.length; i++) {
+          for (var r = 0; r < rules.length; r++) {
+            var from = rules[r][0], to = rules[r][1];
+            if (s.substr(i, from.length) === from) {
+              var tgt = s.slice(0, i) + to + s.slice(i + from.length);
+              if (!map.has(tgt)) { map.set(tgt, new Set()); order.push(tgt); }
+              map.get(tgt).add(pi);
+            }
+          }
+        }
+      }
+      var preds = [], ways = [];
+      for (i = 0; i < order.length; i++) {
+        var set = Array.from(map.get(order[i])).sort(function (a, b) { return a - b; });
+        preds.push(set); ways.push(set.length);
+      }
+      layers.push({ states: order, preds: preds, ways: ways });
+    }
+    return layers;
+  }
+  /* Every state and edge on any path from the start to (gen, idx). */
+  function multiwayAncestors(layers, gen, idx) {
+    var nodes = {}, edges = [], stack = [[gen, idx]];
+    nodes[gen + ':' + idx] = true;
+    while (stack.length) {
+      var cur = stack.pop(), g = cur[0], i = cur[1];
+      if (g === 0) continue;
+      var preds = layers[g].preds[i];
+      for (var k = 0; k < preds.length; k++) {
+        var p = preds[k], key = (g - 1) + ':' + p;
+        edges.push([g - 1, p, g, i]);
+        if (!nodes[key]) { nodes[key] = true; stack.push([g - 1, p]); }
+      }
+    }
+    return { nodes: nodes, edges: edges };
+  }
+
+  /* ---------- Coins ---------- */
+  function flipCoins(n, rng) {
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(rng() < 0.5 ? 0 : 1);
+    return out;
+  }
+  function countMatches(a, b) {
+    var m = 0;
+    for (var i = 0; i < a.length; i++) if (a[i] === b[i]) m++;
+    return m;
+  }
+
+  /* ---------- Sphere ----------
+     Two walkers start a small distance apart on the equator and walk
+     due north. At latitude phi (degrees) their gap is cos(phi) times
+     the starting gap: 1 at the equator, 0 at the pole. */
+  function walkerGap(latDeg) {
+    return Math.cos(latDeg * Math.PI / 180);
+  }
+  /* 3D point on a unit sphere from latitude/longitude in degrees. */
+  function sphereXYZ(latDeg, lonDeg) {
+    var la = latDeg * Math.PI / 180, lo = lonDeg * Math.PI / 180;
+    return [Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)];
+  }
+
+  /* ---------- Tiny 3D projection helper ---------- */
+  function rotateXYZ(x, y, z, yaw, pitch) {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    var x1 = cy * x + sy * z, z1 = -sy * x + cy * z;
+    var y2 = cp * y - sp * z1, z2 = sp * y + cp * z1;
+    return [x1, y2, z2];
+  }
+
+  return {
+    mulberry32: mulberry32,
+    ruleToBits: ruleToBits, bitsToRule: bitsToRule, ruleBinary: ruleBinary,
+    caCode: caCode, caStep: caStep, caRun: caRun, singleCellRow: singleCellRow, randomRow: randomRow,
+    filledOffsets: filledOffsets, activeSpan: activeSpan, pickRules: pickRules,
+    hgInitial: hgInitial, hgStep: hgStep, hgNodeCount: hgNodeCount, hgAdjacency: hgAdjacency,
+    bfs: bfs, shortestPath: shortestPath, ballCounts: ballCounts, estimateDimension: estimateDimension,
+    makeLattice: makeLattice, cleanRadius: cleanRadius,
+    buildTriMesh: buildTriMesh, meshSeedPositions: meshSeedPositions, relaxMesh: relaxMesh, meshEdgeStats: meshEdgeStats, meshTriangles: meshTriangles,
+    multiway: multiway, multiwayAncestors: multiwayAncestors,
+    flipCoins: flipCoins, countMatches: countMatches,
+    walkerGap: walkerGap, sphereXYZ: sphereXYZ, rotateXYZ: rotateXYZ
+  };
+})();
+</script>
+<script id="cu-tests">
+/* ============================================================
+   Self-test. Runs when the page is opened with ?test and logs
+   pass/fail lines to the console. Pure: takes CU, returns results.
+   ============================================================ */
+function runSelfTests(CU) {
+  var results = [];
+  function check(name, got, want) {
+    var g = JSON.stringify(got), w = JSON.stringify(want), ok = g === w;
+    results.push({ name: name, ok: ok, got: g, want: w });
+  }
+  function sameSet(name, got, want) {
+    check(name, got.slice().sort(), want.slice().sort());
+  }
+
+  /* --- rule numbers --- */
+  check('Rule 30 reads 00011110 from case 111 down to 000', CU.ruleBinary(30), '00011110');
+  var roundTrip = true;
+  for (var r = 0; r < 256; r++) if (CU.bitsToRule(CU.ruleToBits(r)) !== r) roundTrip = false;
+  check('rule -> bits -> rule round-trips for all 256 rules', roundTrip, true);
+  check('bit index = 4*left + 2*center + right', CU.caCode(new Uint8Array([0, 1, 0, 1]), 2), 4 * 1 + 2 * 0 + 1);
+
+  /* --- Rule 30 centre column, 20 rows --- */
+  var rows30 = CU.caRun(30, CU.singleCellRow(64), 19), col = '';
+  for (var i = 0; i < 20; i++) col += rows30[i][32];
+  check('Rule 30 centre column, first 20 rows', col, '11011100110001011001');
+
+  /* --- Rule 90 fourth row --- */
+  var rows90 = CU.caRun(90, CU.singleCellRow(64), 3);
+  check('Rule 90 row 4 filled at offsets -3,-1,+1,+3', CU.filledOffsets(rows90[3]), [-3, -1, 1, 3]);
+
+  /* --- Rules 72 / 76 / 88 / 74 --- */
+  var rows72 = CU.caRun(72, CU.singleCellRow(32), 1);
+  check('Rule 72: lone cell gone after 1 step', CU.filledOffsets(rows72[1]), []);
+  var rows76 = CU.caRun(76, CU.singleCellRow(32), 6), ok76 = true;
+  for (i = 0; i <= 6; i++) if (JSON.stringify(CU.filledOffsets(rows76[i])) !== '[0]') ok76 = false;
+  check('Rule 76: straight vertical line', ok76, true);
+  var rows88 = CU.caRun(88, CU.singleCellRow(32), 6), ok88 = true;
+  for (i = 0; i <= 6; i++) if (JSON.stringify(CU.filledOffsets(rows88[i])) !== JSON.stringify([i])) ok88 = false;
+  check('Rule 88: slides right one cell per step', ok88, true);
+  var rows74 = CU.caRun(74, CU.singleCellRow(32), 6), ok74 = true;
+  for (i = 0; i <= 6; i++) if (JSON.stringify(CU.filledOffsets(rows74[i])) !== JSON.stringify([-i])) ok74 = false;
+  check('Rule 74: slides left one cell per step', ok74, true);
+
+  /* --- multiway A -> AB, B -> A --- */
+  var mw = CU.multiway([['A', 'AB'], ['B', 'A']], 'A', 4);
+  function waysOf(g) {
+    var o = [];
+    for (var k = 0; k < mw[g].states.length; k++) o.push(mw[g].states[k] + '=' + mw[g].ways[k]);
+    return o.sort();
+  }
+  sameSet('multiway gen 1 states', mw[1].states, ['AB']);
+  sameSet('multiway gen 2 states', mw[2].states, ['ABB', 'AA']);
+  sameSet('multiway gen 3 states', mw[3].states, ['ABBB', 'ABA', 'AAB']);
+  check('multiway gen 3 ways', waysOf(3), ['ABBB=1', 'ABA=2', 'AAB=2'].sort());
+  sameSet('multiway gen 4 states', mw[4].states, ['ABBBB', 'ABBA', 'ABAB', 'AABB', 'AAA']);
+  check('multiway gen 4 ways', waysOf(4), ['ABBBB=1', 'ABBA=2', 'ABAB=3', 'AABB=2', 'AAA=2'].sort());
+
+  /* --- dots within r links --- */
+  function counts(lat, rmax) { return CU.ballCounts(lat.adj, lat.center, rmax).slice(1); }
+  check('line: dots within 1,2,3 links', counts(CU.makeLattice(1, 25), 3), [3, 5, 7]);
+  check('square grid: dots within 1,2,3 links', counts(CU.makeLattice(2, 17), 3), [5, 13, 25]);
+  check('cubic lattice: dots within 1,2,3 links', counts(CU.makeLattice(3, 9), 3), [7, 25, 63]);
+  var flat = CU.buildTriMesh(6, 4);
+  check('flat triangle mesh: dots within 1,2,3 links', CU.ballCounts(flat.adj, flat.center, 3).slice(1), [7, 19, 37]);
+  var ico = CU.buildTriMesh(5, 3);
+  check('icosahedron: dots within 1,2,3 links', CU.ballCounts(ico.adj, ico.center, 3).slice(1), [6, 11, 12]);
+  check('icosahedron has 12 dots', ico.count, 12);
+  var icoDeg = true;
+  for (i = 0; i < ico.count; i++) if (ico.adj[i].length !== 5) icoDeg = false;
+  check('icosahedron: every dot has 5 neighbours', icoDeg, true);
+  var sev = CU.buildTriMesh(7, 3);
+  check('7-per-corner mesh: dots within 1,2 links', CU.ballCounts(sev.adj, sev.center, 2).slice(1), [8, 29]);
+  var innerDeg = true;
+  for (i = 0; i < sev.count; i++) if (sev.layer[i] <= 1 && sev.adj[i].length !== 7) innerDeg = false;
+  check('7-per-corner mesh: inner dots have 7 neighbours', innerDeg, true);
+
+  check('icosahedron has 20 triangles', CU.meshTriangles(ico).length, 20);
+  check('flat mesh, 4 layers, has 96 triangles', CU.meshTriangles(flat).length, 96);
+
+  /* --- dimension estimate --- */
+  var dLine = CU.estimateDimension(CU.ballCounts(CU.makeLattice(1, 25).adj, 12, 6));
+  check('dimension estimate on a line is 1', Math.round(dLine * 100) / 100, 1);
+  var g17 = CU.makeLattice(2, 17);
+  var dGrid = CU.estimateDimension(CU.ballCounts(g17.adj, g17.center, 6));
+  check('dimension estimate on a grid is 2', Math.round(dGrid * 100) / 100, 2);
+  var c9 = CU.makeLattice(3, 9);
+  var dCube = CU.estimateDimension(CU.ballCounts(c9.adj, c9.center, 4));
+  check('dimension estimate in a cube is close to 3 (2.9 at r = 4)', Math.round(dCube * 10) / 10, 2.9);
+
+  /* --- network rewriting --- */
+  var s = CU.hgInitial();
+  check('network start: 1 dot, 2 links', [CU.hgNodeCount(s.edges), s.edges.length], [1, 2]);
+  s = CU.hgStep(s);
+  check('network after 1 step: 2 dots, 4 links, 1 event', [CU.hgNodeCount(s.edges), s.edges.length, s.events], [2, 4, 1]);
+  s = CU.hgStep(s);
+  check('network after 2 steps: 4 dots, 8 links', [CU.hgNodeCount(s.edges), s.edges.length], [4, 8]);
+  var growth = true;
+  for (i = 0; i < 6; i++) {
+    var before = s.edges.length; s = CU.hgStep(s);
+    if (s.edges.length !== before + 2 * s.lastEvents) growth = false;
+    if (CU.hgNodeCount(s.edges) !== s.nextId) growth = false;
+  }
+  check('every rewrite adds exactly 1 dot and 2 links', growth, true);
+
+  /* --- walkers on a sphere --- */
+  check('walker gap at the equator is the full gap', CU.walkerGap(0), 1);
+  check('walker gap at 60 degrees north is half', Math.round(CU.walkerGap(60) * 1000) / 1000, 0.5);
+  check('walker gap at the pole is zero', Math.round(CU.walkerGap(90) * 1e9) / 1e9, 0);
+
+  var passed = 0, failed = 0;
+  for (i = 0; i < results.length; i++) {
+    if (results[i].ok) { passed++; console.log('PASS  ' + results[i].name); }
+    else { failed++; console.error('FAIL  ' + results[i].name + '\n      got  ' + results[i].got + '\n      want ' + results[i].want); }
+  }
+  console.log((failed ? 'SELF-TEST FAILED: ' : 'SELF-TEST OK: ') + passed + ' passed, ' + failed + ' failed');
+  return { passed: passed, failed: failed, results: results };
+}
+</script>
+<script id="cu-ui">
+/* ============================================================
+   UI: drawing, controls and animation. Everything that touches
+   the page lives here; every calculation comes from CU above.
+   ============================================================ */
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var narrow = function () { return window.innerWidth < 640; };
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  var C = { ink: '#0a0f1f', ink2: '#10172c', ink3: '#182238', ink4: '#22304d', paper: '#f3ebdd', paperDim: '#b9b2a4',
+            muted: '#8a94ad', accent: '#ffb547', accent2: '#ffd58a', good: '#7ad28a' };
+  var relayouts = [];
+
+  /* ---------- visibility: nothing animates off screen ---------- */
+  var visible = new Map(), wakers = new Map(), loops = [];
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      visible.set(e.target, e.isIntersecting);
+      if (e.isIntersecting) (wakers.get(e.target) || []).forEach(function (f) { f(); });
+    });
+  }, { threshold: 0.01 });
+  function watch(el, onWake) {
+    if (!visible.has(el)) { visible.set(el, false); io.observe(el); }
+    if (onWake) { if (!wakers.has(el)) wakers.set(el, []); wakers.get(el).push(onWake); }
+  }
+  function isVisible(el) { return !!visible.get(el) && !document.hidden; }
+  /* A requestAnimationFrame loop that only runs while its element is on screen.
+     frame() may return false to finish. */
+  function loop(el, frame) {
+    var on = false, raf = 0;
+    function tick(ts) {
+      raf = 0;
+      if (!on || !isVisible(el)) return;
+      if (frame(ts) === false) { on = false; return; }
+      raf = requestAnimationFrame(tick);
+    }
+    var api = {
+      start: function () { on = true; if (!raf && isVisible(el)) raf = requestAnimationFrame(tick); },
+      stop: function () { on = false; if (raf) cancelAnimationFrame(raf); raf = 0; },
+      wake: function () { if (on && !raf && isVisible(el)) raf = requestAnimationFrame(tick); },
+      running: function () { return on; }
+    };
+    loops.push(api);
+    watch(el, api.wake);
+    return api;
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) loops.forEach(function (l) { l.wake(); }); });
+
+  /* ---------- canvas helpers ---------- */
+  function sizeCanvas(canvas, cssH) {
+    var cssW = canvas.clientWidth || canvas.parentElement.clientWidth || 320;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.style.height = cssH + 'px';
+    canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: cssW, h: cssH, ctx: ctx, dpr: dpr };
+  }
+  function clear(v, color) { v.ctx.fillStyle = color || C.ink; v.ctx.fillRect(0, 0, v.w, v.h); }
+  function dot(ctx, x, y, r, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  /* Drag (mouse or touch) and arrow keys rotate a 3D view. Returns a
+     function telling whether the last pointer gesture was a drag. */
+  function dragRotate(canvas, rot, onChange, noKeys) {
+    var dragging = false, lx = 0, ly = 0, moved = false;
+    canvas.addEventListener('pointerdown', function (e) {
+      dragging = true; moved = false; lx = e.clientX; ly = e.clientY;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - lx, dy = e.clientY - ly;
+      if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+      lx = e.clientX; ly = e.clientY;
+      rot.yaw += dx * 0.01; rot.pitch = clamp(rot.pitch + dy * 0.01, -1.45, 1.45); rot.touched = Date.now();
+      onChange();
+    });
+    var up = function () { dragging = false; };
+    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    if (!noKeys) canvas.addEventListener('keydown', function (e) {
+      var k = e.key, used = true;
+      if (k === 'ArrowLeft') rot.yaw -= 0.15; else if (k === 'ArrowRight') rot.yaw += 0.15;
+      else if (k === 'ArrowUp') rot.pitch = clamp(rot.pitch - 0.15, -1.45, 1.45);
+      else if (k === 'ArrowDown') rot.pitch = clamp(rot.pitch + 0.15, -1.45, 1.45);
+      else used = false;
+      if (used) { e.preventDefault(); rot.touched = Date.now(); onChange(); }
+    });
+    return function () { return moved; };
+  }
+  function project(x, y, z, rot) { return CU.rotateXYZ(x, y, z, rot.yaw, rot.pitch); }
+  /* Draw a cellular automaton run into a canvas at one pixel per cell. */
+  function drawCA(canvas, rule, firstRow, steps) {
+    var W = firstRow.length, H = steps + 1;
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext('2d'), img = ctx.createImageData(W, H), d = img.data;
+    var rows = CU.caRun(rule, firstRow, steps);
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      var i = 4 * (y * W + x), on = rows[y][x];
+      d[i] = on ? 243 : 10; d[i + 1] = on ? 235 : 15; d[i + 2] = on ? 221 : 31; d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  var trueRandom = function () {
+    if (window.crypto && window.crypto.getRandomValues) { var u = new Uint32Array(1); window.crypto.getRandomValues(u); return u[0] / 4294967296; }
+    return Math.random();
+  };
+
+  /* ---------- progress bar ---------- */
+  (function () {
+    var bar = $('#progress');
+    function onScroll() {
+      var h = document.documentElement, max = h.scrollHeight - window.innerHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop || document.body.scrollTop) / max * 100 : 0) + '%';
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+
+  /* ---------- guess cards ---------- */
+  $$('.guess').forEach(function (g) {
+    var opts = $$('.opt', g), verdict = $('.verdict', g), reveal = $('.reveal', g), done = false;
+    var hasRight = opts.some(function (o) { return o.hasAttribute('data-right'); });
+    opts.forEach(function (o) {
+      o.addEventListener('click', function () {
+        if (done) return;
+        done = true;
+        o.classList.add('chosen'); o.setAttribute('aria-pressed', 'true');
+        opts.forEach(function (x) { if (x !== o) x.disabled = true; if (x.hasAttribute('data-right')) x.classList.add('right'); });
+        if (hasRight) {
+          var right = o.hasAttribute('data-right');
+          verdict.textContent = right ? 'Good guess. That is it.' : 'Not quite. Here is what happens:';
+          verdict.className = 'verdict' + (right ? ' good' : '');
+        } else {
+          verdict.textContent = 'Noted. Here is the view this page follows:';
+        }
+        verdict.hidden = false; reveal.hidden = false;
+        if (!reduceMotion) reveal.classList.add('rise');
+        g.dispatchEvent(new CustomEvent('revealed'));
+      });
+    });
+  });
+
+  /* ---------- hero sky ---------- */
+  (function () {
+    var c = $('#sky');
+    function draw() {
+      var box = c.parentElement, w = box.clientWidth, h = box.clientHeight;
+      if (!w || !h) return;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      c.width = w * dpr; c.height = h * dpr;
+      var ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+      var rng = CU.mulberry32(42), n = Math.floor(w * h / 3200);
+      for (var i = 0; i < n; i++) {
+        var x = rng() * w, y = rng() * h, r = rng() < 0.07 ? 1.5 : 0.3 + rng() * 0.9, a = 0.2 + rng() * 0.6;
+        ctx.fillStyle = rng() < 0.07 ? 'rgba(255,181,71,' + a + ')' : 'rgba(243,235,221,' + a + ')';
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      }
+      var g = ctx.createLinearGradient(0, h * 0.45, 0, h);
+      g.addColorStop(0, 'rgba(10,15,31,0)'); g.addColorStop(1, 'rgba(10,15,31,1)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    }
+    draw(); relayouts.push(draw);
+  })();
+
+  /* ============================================================
+     Scene 2: cellular automata explorer
+     ============================================================ */
+  (function () {
+    var canvas = $('#ca-canvas'), strip = $('#rule-strip'), numEl = $('#rule-num'), binEl = $('#rule-bin');
+    var input = $('#rule-input'), note = $('#preset-note'), readout = $('#ca-readout'), fb = $('#challenge-feedback');
+    var runBtn = $('#ca-run');
+    var NOTES = {
+      250: 'Rule 250 makes a neat checkerboard. Predictable all the way down.',
+      90: 'Rule 90 builds a nested pattern: triangles inside triangles, at every scale.',
+      30: 'Rule 30 looks random. Nobody has found a shortcut that predicts its middle column without just running it.',
+      110: 'Rule 110 builds structures that move and collide. Matthew Cook proved in 2004 that it can run any program at all.',
+      72: 'Rule 72: watch the lone cell vanish on step 1.'
+    };
+    var rule = 30, bits = CU.ruleToBits(30), startMode = 'single', seed = 11, challenge = false, started = false;
+    var W = 0, H = 0, cell = 3, rows = [], stepping = null, highlight = null, view = null;
+    var off = document.createElement('canvas'), offCtx = off.getContext('2d'), img = null;
+    var PAPER = [243, 235, 221], INK = [10, 15, 31], PENDING = [40, 56, 90];
+
+    /* rule strip: eight cases from 111 down to 000 */
+    for (var c = 7; c >= 0; c--) (function (code) {
+      var l = (code >> 2) & 1, m = (code >> 1) & 1, r = code & 1;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'case'; b.dataset.code = code;
+      b.innerHTML = '<span class="in"><i class="cell' + (l ? ' on' : '') + '"></i><i class="cell' + (m ? ' on' : '') + '"></i><i class="cell' + (r ? ' on' : '') + '"></i></span>' +
+                    '<span class="arrow"></span><span class="out"><i class="cell"></i></span><span class="lbl">' + l + m + r + '</span>';
+      b.addEventListener('click', function () { bits[code] ^= 1; setRule(CU.bitsToRule(bits)); });
+      strip.appendChild(b);
+    })(c);
+    function refreshStrip() {
+      $$('.case', strip).forEach(function (b) {
+        var code = +b.dataset.code;
+        b.setAttribute('aria-pressed', bits[code] ? 'true' : 'false');
+        b.setAttribute('aria-label', 'Case ' + ((code >> 2) & 1) + ' ' + ((code >> 1) & 1) + ' ' + (code & 1) + ' gives ' + bits[code] + '. Press to flip.');
+      });
+    }
+    function highlightCase(code) { $$('.case', strip).forEach(function (b) { b.classList.toggle('reading', +b.dataset.code === code); }); }
+
+    function setPx(x, y, col) { var i = 4 * (y * W + x); img.data[i] = col[0]; img.data[i + 1] = col[1]; img.data[i + 2] = col[2]; img.data[i + 3] = 255; }
+    function paintRow(y, row, pendingSpan) {
+      for (var x = 0; x < W; x++) setPx(x, y, row[x] ? PAPER : INK);
+      if (pendingSpan) for (x = pendingSpan.lo; x <= pendingSpan.hi; x++) setPx(x, y, PENDING);
+    }
+    function clearImage() { for (var i = 0; i < img.data.length; i += 4) { img.data[i] = INK[0]; img.data[i + 1] = INK[1]; img.data[i + 2] = INK[2]; img.data[i + 3] = 255; } }
+    function blit() {
+      offCtx.putImageData(img, 0, 0);
+      var ctx = view.ctx, ox = Math.floor((view.w - W * cell) / 2);
+      ctx.fillStyle = C.ink; ctx.fillRect(0, 0, view.w, view.h);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(off, ox, 0, W * cell, H * cell);
+      if (highlight) {
+        var hx = ox + highlight.x * cell, hy = highlight.row * cell;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = C.accent;
+        ctx.strokeRect(hx - cell - 1, hy - cell - 1, 3 * cell + 2, cell + 2);
+        ctx.fillStyle = highlight.value ? C.accent : 'rgba(255,181,71,0.25)';
+        ctx.fillRect(hx, hy, cell, cell);
+        ctx.strokeStyle = C.accent2;
+        ctx.strokeRect(hx - 1, hy - 1, cell + 2, cell + 2);
+        /* magnified view of the three cells being read and the cell being written */
+        var S = view.w < 600 ? 18 : 24, pad = 10, bw = 3 * S + 2 * pad + 44, bh = 2 * S + 3 * pad + 14;
+        var bx = view.w - bw - 8, by = 8, code = highlight.code, k;
+        ctx.fillStyle = 'rgba(10,15,31,0.94)'; ctx.fillRect(bx, by, bw, bh);
+        ctx.lineWidth = 1; ctx.strokeStyle = C.accent; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+        ctx.font = '500 10px IBM Plex Mono, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'left';
+        ctx.fillText('reads', bx + pad, by + pad + S / 2 + 4);
+        ctx.fillText('writes', bx + pad, by + 2 * pad + S + S / 2 + 4);
+        for (k = 0; k < 3; k++) {
+          var on = (code >> (2 - k)) & 1, cx0 = bx + pad + 44 + k * S, cy0 = by + pad;
+          ctx.fillStyle = on ? C.paper : C.ink; ctx.fillRect(cx0, cy0, S - 2, S - 2);
+          ctx.strokeStyle = C.paperDim; ctx.strokeRect(cx0 + 0.5, cy0 + 0.5, S - 3, S - 3);
+        }
+        var wx = bx + pad + 44 + S, wy = by + 2 * pad + S;
+        ctx.fillStyle = highlight.value ? C.accent : C.ink; ctx.fillRect(wx, wy, S - 2, S - 2);
+        ctx.strokeStyle = C.accent; ctx.strokeRect(wx + 0.5, wy + 0.5, S - 3, S - 3);
+        ctx.strokeStyle = 'rgba(255,181,71,0.5)'; ctx.beginPath(); ctx.moveTo(wx + S / 2 - 1, wy - pad + 3); ctx.lineTo(wx + S / 2 - 1, wy - 2); ctx.stroke();
+      }
+    }
+    function startRow() { return startMode === 'single' ? CU.singleCellRow(W) : CU.randomRow(W, CU.mulberry32(seed)); }
+    function layout() {
+      var cssW = canvas.clientWidth || 320;
+      cell = cssW < 600 ? 3 : 4;
+      W = Math.floor(cssW / cell); if (W % 2 === 0) W--;
+      H = Math.min(Math.floor(W / 2) + 1, 110);
+      view = sizeCanvas(canvas, H * cell);
+      off.width = W; off.height = H; img = offCtx.createImageData(W, H);
+      restart(started);
+    }
+    var run = loop(canvas, function () {
+      var per = narrow() ? 2 : 4;
+      for (var i = 0; i < per && rows.length < H; i++) { rows.push(CU.caStep(rows[rows.length - 1], bits)); paintRow(rows.length - 1, rows[rows.length - 1]); }
+      blit();
+      if (rows.length >= H) { setRunLabel(false); return false; }
+    });
+    function setRunLabel(running) { runBtn.textContent = running ? 'Pause' : (rows.length >= H ? 'Run again' : 'Run'); }
+    function restart(animate) {
+      run.stop();
+      rows = [startRow()]; stepping = null; highlight = null; highlightCase(-1);
+      clearImage(); paintRow(0, rows[0]); blit();
+      if (animate) { if (reduceMotion) finishAll(); else { run.start(); } }
+      setRunLabel(animate && !reduceMotion);
+    }
+    function finishAll() {
+      while (rows.length < H) { rows.push(CU.caStep(rows[rows.length - 1], bits)); paintRow(rows.length - 1, rows[rows.length - 1]); }
+      blit(); setRunLabel(false);
+    }
+    function stepCell() {
+      run.stop(); setRunLabel(false);
+      if (rows.length >= H) { readout.textContent = 'The picture is full. Press Reset to start again.'; return; }
+      var prev = rows[rows.length - 1];
+      if (!stepping) {
+        var span = CU.activeSpan(prev) || { lo: 0, hi: W - 1 };
+        var bg = bits[prev[0] ? 7 : 0], buf = new Uint8Array(W);
+        for (var x = 0; x < W; x++) buf[x] = bg;
+        stepping = { buf: buf, pos: span.lo, span: span };
+        paintRow(rows.length, buf, span);
+      }
+      var i = stepping.pos, code = CU.caCode(prev, i), v = bits[code];
+      stepping.buf[i] = v;
+      setPx(i, rows.length, v ? PAPER : INK);
+      highlight = { row: rows.length, x: i, value: v, code: code };
+      blit(); highlightCase(code);
+      readout.innerHTML = 'Reads <strong>' + ((code >> 2) & 1) + ' ' + ((code >> 1) & 1) + ' ' + (code & 1) + '</strong> in the row above, looks up that case in the rule, writes <strong>' + v + '</strong>.';
+      stepping.pos++;
+      if (stepping.pos > stepping.span.hi) commitStep();
+    }
+    function commitStep() {
+      rows.push(stepping.buf); paintRow(rows.length - 1, rows[rows.length - 1]);
+      stepping = null; highlight = null; highlightCase(-1); blit();
+      readout.innerHTML = 'Row ' + rows.length + ' done. Cells far from the pattern all read the same case, so they are filled in at once.';
+    }
+    function stepRow() {
+      run.stop(); setRunLabel(false);
+      if (rows.length >= H) { readout.textContent = 'The picture is full. Press Reset to start again.'; return; }
+      if (stepping) { for (var x = stepping.pos; x <= stepping.span.hi; x++) stepping.buf[x] = bits[CU.caCode(rows[rows.length - 1], x)]; commitStep(); return; }
+      rows.push(CU.caStep(rows[rows.length - 1], bits)); paintRow(rows.length - 1, rows[rows.length - 1]); blit();
+      readout.innerHTML = 'Row ' + rows.length + ' done. Every cell applied the same eight-case rule.';
+    }
+    function setRule(r) {
+      rule = clamp(Math.round(r) || 0, 0, 255); bits = CU.ruleToBits(rule);
+      numEl.textContent = rule; binEl.textContent = CU.ruleBinary(rule); input.value = rule;
+      refreshStrip();
+      $$('.preset').forEach(function (p) { p.setAttribute('aria-pressed', +p.dataset.rule === rule ? 'true' : 'false'); });
+      note.textContent = NOTES[rule] || '';
+      started = true; restart(true);
+      if (challenge) challengeFeedback();
+    }
+    function challengeFeedback() {
+      var diff = rule ^ 72, flips = 0; for (var i = 0; i < 8; i++) if ((diff >> i) & 1) flips++;
+      fb.className = 'feedback';
+      if (rule === 72) { fb.textContent = 'Rule 72 loaded. The lone cell dies on the very first step. Flip one output square above to save it.'; return; }
+      if (rule === 76) { fb.className = 'feedback good'; fb.textContent = 'Rule 76! You flipped case 010: a filled cell with empty neighbours now stays filled. It lives forever, as a straight vertical line.'; return; }
+      if (rule === 88) { fb.className = 'feedback good'; fb.textContent = 'Rule 88, a bonus answer. You flipped case 100, so the cell to the right of a filled cell fills next. The cell survives by sliding right, one step at a time.'; return; }
+      if (rule === 74) { fb.className = 'feedback good'; fb.textContent = 'Rule 74, a bonus answer. You flipped case 001, so the cell survives by sliding left. (76 keeps it still.)'; return; }
+      if (flips === 1) {
+        var alive = Array.prototype.some.call(CU.caStep(CU.singleCellRow(16), bits), function (v) { return v; });
+        fb.className = 'feedback bad';
+        fb.textContent = alive ? 'Rule ' + rule + ': something survives, but the whole background flipped, which is cheating. The one-flip answers are 76 (stays put), 88 and 74 (slides).'
+                               : 'Rule ' + rule + ': still dead after one step. Try a case with exactly one filled cell in it.';
+        return;
+      }
+      fb.className = 'feedback bad';
+      fb.textContent = 'That is ' + flips + ' flips away from Rule 72. Press Load Rule 72 to try again with a single flip.';
+    }
+
+    $('#ca-step-cell').addEventListener('click', stepCell);
+    $('#ca-step-row').addEventListener('click', stepRow);
+    runBtn.addEventListener('click', function () {
+      if (run.running()) { run.stop(); setRunLabel(false); return; }
+      if (rows.length >= H) { restart(true); return; }
+      stepping = null; highlight = null; highlightCase(-1);
+      if (reduceMotion) finishAll(); else { run.start(); setRunLabel(true); }
+    });
+    $('#ca-reset').addEventListener('click', function () { restart(false); readout.innerHTML = 'Back to the first row. Press <strong>Step one cell</strong> or <strong>Run</strong>.'; });
+    $$('.preset').forEach(function (p) { p.addEventListener('click', function () { challenge = false; fb.textContent = ''; setRule(+p.dataset.rule); }); });
+    input.addEventListener('change', function () { challenge = false; fb.textContent = ''; setRule(+input.value); });
+    $('#ca-random-rule').addEventListener('click', function () { challenge = false; fb.textContent = ''; setRule(Math.floor(trueRandom() * 256)); });
+    $('#start-single').addEventListener('click', function () { startMode = 'single'; $('#start-single').setAttribute('aria-pressed', 'true'); $('#start-random').setAttribute('aria-pressed', 'false'); started = true; restart(true); });
+    $('#start-random').addEventListener('click', function () { startMode = 'random'; seed = Math.floor(trueRandom() * 1e9); $('#start-single').setAttribute('aria-pressed', 'false'); $('#start-random').setAttribute('aria-pressed', 'true'); started = true; restart(true); });
+    $('#load-72').addEventListener('click', function () {
+      challenge = true; startMode = 'single';
+      $('#start-single').setAttribute('aria-pressed', 'true'); $('#start-random').setAttribute('aria-pressed', 'false');
+      setRule(72);
+      $('#ca-panel').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+
+    layout(); refreshStrip();
+    $$('.preset').forEach(function (p) { p.setAttribute('aria-pressed', +p.dataset.rule === rule ? 'true' : 'false'); });
+    note.textContent = NOTES[30];
+    watch(canvas, function () { if (!started) { started = true; restart(true); } });
+    relayouts.push(layout);
+
+    /* the "mostly boring" strip and the four classes, inside the guess reveal */
+    var stripEl = $('#random-strip'), stripSeed = 3;
+    function renderStrip() {
+      stripEl.innerHTML = '';
+      CU.pickRules(stripSeed, 12).forEach(function (r) {
+        var d = document.createElement('div'); d.className = 'mini';
+        var cv = document.createElement('canvas'); cv.setAttribute('aria-label', 'Rule ' + r);
+        drawCA(cv, r, CU.singleCellRow(64), 31);
+        var s = document.createElement('span'); s.textContent = 'Rule ' + r;
+        d.appendChild(cv); d.appendChild(s); stripEl.appendChild(d);
+      });
+    }
+    $('#shuffle-rules').addEventListener('click', function () { stripSeed = Math.floor(trueRandom() * 1e9); renderStrip(); });
+    var classesEl = $('#classes');
+    [[254, 'Class 1', 'Dies out or goes uniform', 'Rule 254'], [108, 'Class 2', 'Repeats', 'Rule 108'], [30, 'Class 3', 'Looks random', 'Rule 30'], [110, 'Class 4', 'Builds complex structures', 'Rule 110']].forEach(function (k) {
+      var d = document.createElement('div'); d.className = 'cls';
+      var cv = document.createElement('canvas'); cv.setAttribute('aria-label', k[1] + ', ' + k[2] + ', ' + k[3]);
+      drawCA(cv, k[0], CU.randomRow(96, CU.mulberry32(5)), 47);
+      d.appendChild(cv);
+      var b = document.createElement('b'); b.textContent = k[1] + ' · ' + k[2]; d.appendChild(b);
+      var s = document.createElement('span'); s.textContent = k[3]; d.appendChild(s);
+      classesEl.appendChild(d);
+    });
+    renderStrip();
+  })();
+
+  /* ============================================================
+     Scene 3: the growing network
+     ============================================================ */
+  (function () {
+    var canvas = $('#hg-canvas'), applyBtn = $('#hg-apply'), noteEl = $('#hg-note'), readout = $('#hg-readout');
+    var CAP = 1000, state, nodes, path = null, heat = 0, view, scale = 4, cx = 0, cy = 0, rng = CU.mulberry32(99);
+    var L = 16, K_REP = 900, K_SPRING = 0.06, DAMP = 0.82;
+    function layout() { view = sizeCanvas(canvas, narrow() ? Math.min(canvas.clientWidth, 360) : 420); draw(); }
+    var lp = loop(canvas, function () {
+      physics();
+      heat *= 0.985;
+      draw();
+      if (heat < 0.01) return false;
+    });
+    function reset() {
+      state = CU.hgInitial();
+      nodes = new Map(); nodes.set(0, { x: 0, y: 0, vx: 0, vy: 0, isNew: false });
+      path = null; heat = 1; scale = 4; cx = 0; cy = 0;
+      updateStats(); readout.textContent = ''; lp.start(); draw();
+    }
+    function apply() {
+      if (state.edges.length >= CAP) return;
+      state = CU.hgStep(state);
+      nodes.forEach(function (n) { n.isNew = false; });
+      state.edges.forEach(function (e) {
+        var w = e[1];
+        if (!nodes.has(w)) {
+          var p = nodes.get(e[0]) || { x: 0, y: 0 };
+          nodes.set(w, { x: p.x + (rng() - 0.5) * 10, y: p.y + (rng() - 0.5) * 10, vx: 0, vy: 0, isNew: true });
+        }
+      });
+      path = null; heat = 1; readout.textContent = '';
+      updateStats(); lp.start();
+    }
+    function updateStats() {
+      $('#hg-dots').textContent = nodes.size.toLocaleString();
+      $('#hg-links').textContent = state.edges.length.toLocaleString();
+      $('#hg-steps').textContent = state.generation;
+      $('#hg-events').textContent = state.events.toLocaleString();
+      var capped = state.edges.length >= CAP;
+      applyBtn.disabled = capped;
+      noteEl.textContent = capped ? 'Stopping at about 1,000 links so this stays smooth on a phone. The real thing never stops.'
+        : state.generation === 0 ? 'Each press finds every place the rule fits (without overlaps) and rewrites them all at once.'
+        : 'Last press: ' + state.lastEvents + ' rewrite' + (state.lastEvents === 1 ? '' : 's') + ' at once, each adding one dot and two links.';
+    }
+    function physics() {
+      var arr = Array.from(nodes.values()), n = arr.length, i, j, a, b, dx, dy, d2, d, f;
+      for (i = 0; i < n; i++) {
+        a = arr[i];
+        for (j = i + 1; j < n; j++) {
+          b = arr[j];
+          dx = a.x - b.x; dy = a.y - b.y; d2 = dx * dx + dy * dy;
+          if (d2 < 0.5) { dx = rng() - 0.5; dy = rng() - 0.5; d2 = 0.5; }
+          if (d2 > 40000) continue;
+          d = Math.sqrt(d2); f = K_REP / (d2 * d);
+          a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
+        }
+      }
+      var E = state.edges;
+      for (i = 0; i < E.length; i++) {
+        if (E[i][0] === E[i][1]) continue;
+        a = nodes.get(E[i][0]); b = nodes.get(E[i][1]);
+        dx = b.x - a.x; dy = b.y - a.y; d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        f = K_SPRING * (d - L) / d;
+        a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
+      }
+      for (i = 0; i < n; i++) {
+        a = arr[i];
+        a.vx = (a.vx - a.x * 0.002) * DAMP; a.vy = (a.vy - a.y * 0.002) * DAMP;
+        var sp = Math.sqrt(a.vx * a.vx + a.vy * a.vy);
+        if (sp > 10) { a.vx *= 10 / sp; a.vy *= 10 / sp; }
+        a.x += a.vx; a.y += a.vy;
+      }
+    }
+    function fitView() {
+      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodes.forEach(function (p) { if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x; if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; });
+      var bw = Math.max(maxX - minX, 20), bh = Math.max(maxY - minY, 20);
+      var target = Math.min((view.w - 50) / bw, (view.h - 50) / bh, 4);
+      scale += (target - scale) * 0.08;
+      cx += ((minX + maxX) / 2 - cx) * 0.08; cy += ((minY + maxY) / 2 - cy) * 0.08;
+    }
+    function draw() {
+      if (!view || !state) return;
+      fitView();
+      var ctx = view.ctx; clear(view);
+      ctx.save(); ctx.translate(view.w / 2 - cx * scale, view.h / 2 - cy * scale); ctx.scale(scale, scale);
+      var seen = new Map(), E = state.edges, i, a, b, key, k;
+      ctx.lineWidth = 1.1 / scale; ctx.strokeStyle = 'rgba(243,235,221,0.30)';
+      ctx.beginPath();
+      for (i = 0; i < E.length; i++) {
+        a = nodes.get(E[i][0]); b = nodes.get(E[i][1]);
+        if (E[i][0] === E[i][1]) { ctx.moveTo(a.x + 8, a.y - 4); ctx.arc(a.x + 4, a.y - 4, 4, 0, Math.PI * 2); continue; }
+        key = E[i][0] < E[i][1] ? E[i][0] + '-' + E[i][1] : E[i][1] + '-' + E[i][0];
+        k = seen.get(key) || 0; seen.set(key, k + 1);
+        ctx.moveTo(a.x, a.y);
+        if (k === 0) ctx.lineTo(b.x, b.y);
+        else { var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.sqrt(nx * nx + ny * ny) || 1, off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 5; ctx.quadraticCurveTo(mx + nx / nl * off, my + ny / nl * off, b.x, b.y); }
+      }
+      ctx.stroke();
+      if (path) {
+        ctx.lineWidth = 2.6 / scale; ctx.strokeStyle = C.accent2; ctx.beginPath();
+        for (i = 0; i + 1 < path.length; i++) { a = nodes.get(path[i]); b = nodes.get(path[i + 1]); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+        ctx.stroke();
+      }
+      var r = clamp(7.5 - Math.log(nodes.size + 1) / Math.LN2 * 0.6, 2.4, 6.5);
+      var pathSet = path ? new Set(path) : null;
+      nodes.forEach(function (p, id) {
+        if (p.isNew) { ctx.fillStyle = 'rgba(255,181,71,0.28)'; ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.4, 0, Math.PI * 2); ctx.fill(); }
+        var col = p.isNew ? C.accent : (pathSet && pathSet.has(id)) ? C.accent2 : C.paper;
+        dot(ctx, p.x, p.y, (pathSet && pathSet.has(id)) ? r * 1.3 : r, col);
+      });
+      ctx.restore();
+    }
+    function lightPath() {
+      if (nodes.size < 4) { readout.textContent = 'Press "Apply the rule" a few times first, so there is a network to walk across.'; return; }
+      var adj = CU.hgAdjacency(state.edges, state.nextId);
+      var d0 = CU.bfs(adj, 0), u = 0, i;
+      for (i = 0; i < d0.length; i++) if (d0[i] > d0[u]) u = i;
+      var d1 = CU.bfs(adj, u), v = u;
+      for (i = 0; i < d1.length; i++) if (d1[i] > d1[v]) v = i;
+      path = CU.shortestPath(adj, u, v);
+      draw();
+      readout.textContent = 'The two lit dots are the farthest pair in the network: ' + (path.length - 1) + ' links apart. No ruler involved, just counting.';
+      canvas.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    }
+    applyBtn.addEventListener('click', apply);
+    $('#hg-reset').addEventListener('click', reset);
+    $('#hg-path').addEventListener('click', lightPath);
+    reset(); layout(); relayouts.push(layout);
+  })();
+
+  /* ============================================================
+     Scene 4A: dimension by counting
+     ============================================================ */
+  (function () {
+    var canvas = $('#dim-canvas'), plot = $('#dim-plot'), range = $('#dim-range'), rOut = $('#dim-r');
+    var countEl = $('#dim-count'), estEl = $('#dim-est'), noteEl = $('#dim-note'), tabs = $$('#dim-tabs .btn');
+    var dim = 2, lat, chosen, rmax = 0, r = 2, counts = [], dist, view, pview;
+    var rot = { yaw: 0.7, pitch: -0.5, touched: 0 };
+    var NOTE = 'Dots inside the ball, for every radius up to the one you chose. A straight line means one dimension; the harder it bends upward, the more dimensions. Tiny balls are lumpy, so the estimate wobbles for small r and settles as the ball grows.';
+    function build() {
+      var n = dim === 1 ? (narrow() ? 21 : 29) : dim === 2 ? (narrow() ? 13 : 17) : (narrow() ? 7 : 9);
+      lat = CU.makeLattice(dim, n); chosen = lat.center;
+      recompute();
+    }
+    function recompute() {
+      var cap = dim === 1 ? (narrow() ? 10 : 14) : dim === 2 ? (narrow() ? 6 : 8) : (narrow() ? 3 : 4);
+      rmax = Math.min(CU.cleanRadius(lat, chosen), cap);
+      range.max = Math.max(rmax, 0); if (r > rmax) r = rmax; range.value = r; rOut.value = r;
+      counts = CU.ballCounts(lat.adj, chosen, Math.max(rmax, 0)); dist = CU.bfs(lat.adj, chosen);
+      countEl.textContent = counts[r];
+      var est = CU.estimateDimension(counts.slice(0, r + 1));
+      estEl.textContent = isNaN(est) ? '–' : est.toFixed(1);
+      noteEl.textContent = rmax === 0 ? 'That dot sits on the edge of our toy lattice, so its ball would be cut off. Pick a dot nearer the middle.'
+        : isNaN(est) ? 'Grow the ball to a radius of at least 2 to get an estimate.' : NOTE;
+      draw(); drawPlot();
+    }
+    function layout() {
+      var cssW = canvas.clientWidth || 320;
+      view = sizeCanvas(canvas, dim === 1 ? 120 : Math.min(cssW, 400));
+      pview = sizeCanvas(plot, 170);
+      build();
+    }
+    function screenPos() {
+      var pts = [], n = lat.n, w = view.w, h = view.h, i, p, q;
+      if (dim === 1) {
+        var sp = (w - 40) / (n - 1);
+        for (i = 0; i < lat.count; i++) pts.push({ x: 20 + lat.nodes[i].ix * sp, y: h / 2, z: 0 });
+      } else if (dim === 2) {
+        var s2 = Math.min((w - 36) / (n - 1), (h - 36) / (n - 1));
+        for (i = 0; i < lat.count; i++) { p = lat.nodes[i]; pts.push({ x: w / 2 + p.x * s2, y: h / 2 + p.y * s2, z: 0 }); }
+      } else {
+        var s3 = Math.min(w, h) / (n * 1.9);
+        for (i = 0; i < lat.count; i++) { p = lat.nodes[i]; q = project(p.x, p.y, p.z, rot); pts.push({ x: w / 2 + q[0] * s3, y: h / 2 - q[1] * s3, z: q[2] }); }
+      }
+      return pts;
+    }
+    function draw() {
+      if (!view) return;
+      var ctx = view.ctx; clear(view);
+      var pts = screenPos(), i, k, a, b;
+      ctx.lineWidth = 1;
+      for (i = 0; i < lat.count; i++) for (k = 0; k < lat.adj[i].length; k++) {
+        var j = lat.adj[i][k]; if (j < i) continue;
+        a = pts[i]; b = pts[j];
+        var inside = dist[i] <= r && dist[j] <= r;
+        ctx.strokeStyle = inside ? 'rgba(255,181,71,0.75)' : (dim === 3 ? 'rgba(243,235,221,' + (0.06 + 0.1 * (a.z + b.z + 2) / 4) + ')' : 'rgba(243,235,221,0.16)');
+        ctx.lineWidth = inside ? 1.6 : 1;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      var order = pts.map(function (p, idx) { return idx; });
+      if (dim === 3) order.sort(function (p, q) { return pts[p].z - pts[q].z; });
+      var base = dim === 3 ? 3 : 4.5;
+      for (k = 0; k < order.length; k++) {
+        i = order[k]; a = pts[i];
+        var depth = dim === 3 ? 0.55 + 0.45 * (a.z / (lat.n * 0.9) + 1) / 2 : 1;
+        if (i === chosen) { dot(ctx, a.x, a.y, base * 2.2, 'rgba(255,213,138,0.35)'); dot(ctx, a.x, a.y, base * 1.4, C.accent2); }
+        else if (dist[i] <= r) dot(ctx, a.x, a.y, base * 1.15, 'rgba(255,181,71,' + depth + ')');
+        else dot(ctx, a.x, a.y, base * 0.8, 'rgba(185,178,164,' + (0.5 * depth) + ')');
+      }
+    }
+    function drawPlot() {
+      var ctx = pview.ctx, w = pview.w, h = pview.h; clear(pview, C.ink);
+      var padL = 36, padR = 12, padT = 14, padB = 26, maxR = Math.max(rmax, 1), maxC = counts[counts.length - 1] || 1;
+      var X = function (rr) { return padL + (w - padL - padR) * rr / maxR; }, Y = function (c) { return h - padB - (h - padB - padT) * c / maxC; };
+      ctx.strokeStyle = 'rgba(243,235,221,0.25)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, h - padB); ctx.lineTo(w - padR, h - padB); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.font = '10px ' + 'IBM Plex Mono, monospace'; ctx.textAlign = 'center';
+      var every = Math.ceil(maxR / 8);
+      for (var rr = 0; rr <= maxR; rr += every) { ctx.fillText(rr, X(rr), h - padB + 12); }
+      ctx.textAlign = 'right'; ctx.fillText(maxC, padL - 4, padT + 4); ctx.fillText('0', padL - 4, h - padB + 3);
+      ctx.fillText('radius r →', w - padR, h - 2);
+      ctx.textAlign = 'left'; ctx.fillText('dots inside', padL + 4, padT - 3);
+      var i;
+      ctx.strokeStyle = 'rgba(243,235,221,0.3)'; ctx.setLineDash([3, 3]); ctx.beginPath();
+      for (i = 0; i < counts.length; i++) { if (i === 0) ctx.moveTo(X(i), Y(counts[i])); else ctx.lineTo(X(i), Y(counts[i])); }
+      ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.beginPath();
+      for (i = 0; i <= r && i < counts.length; i++) { if (i === 0) ctx.moveTo(X(i), Y(counts[i])); else ctx.lineTo(X(i), Y(counts[i])); }
+      ctx.stroke();
+      for (i = 0; i <= r && i < counts.length; i++) dot(ctx, X(i), Y(counts[i]), 3.5, i === r ? C.accent2 : C.accent);
+    }
+    var wasDrag = dragRotate(canvas, rot, draw, true);
+    canvas.addEventListener('pointerup', function (e) {
+      if (wasDrag()) return;
+      var rect = canvas.getBoundingClientRect(), px = e.clientX - rect.left, py = e.clientY - rect.top;
+      var pts = screenPos(), best = -1, bd = 400;
+      for (var i = 0; i < pts.length; i++) { var dx = pts[i].x - px, dy = pts[i].y - py, d2 = dx * dx + dy * dy; if (d2 < bd) { bd = d2; best = i; } }
+      if (best >= 0) { chosen = best; recompute(); }
+    });
+    canvas.addEventListener('keydown', function (e) {
+      var p = lat.nodes[chosen], ix = p.ix, iy = p.iy, iz = p.iz, used = true;
+      if (e.key === 'ArrowLeft') ix--; else if (e.key === 'ArrowRight') ix++;
+      else if (e.key === 'ArrowUp' && dim > 1) { if (e.shiftKey && dim > 2) iz++; else iy--; }
+      else if (e.key === 'ArrowDown' && dim > 1) { if (e.shiftKey && dim > 2) iz--; else iy++; }
+      else used = false;
+      if (!used) return;
+      e.preventDefault();
+      var n = lat.n;
+      if (ix < 0 || ix >= n || iy < 0 || iy >= n || iz < 0 || iz >= n) return;
+      chosen = lat.index(ix, iy, iz); recompute();
+    });
+    range.addEventListener('input', function () { r = +range.value; recompute(); });
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        dim = +t.dataset.dim; r = 2;
+        tabs.forEach(function (x) { x.setAttribute('aria-pressed', x === t ? 'true' : 'false'); });
+        layout();
+        if (dim === 3) spin.start(); else spin.stop();
+      });
+    });
+    var spin = loop(canvas, function () {
+      if (reduceMotion || dim !== 3) return false;
+      if (Date.now() - rot.touched > 4000) { rot.yaw += 0.004; draw(); }
+    });
+    canvas.setAttribute('aria-label', 'Dots of the chosen network. The picked dot and every dot within r links are highlighted. Arrow keys move the picked dot; in the 3D lattice, Shift with up or down moves it in depth. Drag to spin the 3D lattice.');
+    layout(); relayouts.push(layout);
+  })();
+
+  /* ============================================================
+     Scene 4B: three triangle meshes
+     ============================================================ */
+  $$('.mesh').forEach(function (el) {
+    var q = +el.dataset.q, canvas = $('.mesh-canvas', el), range = $('.mesh-range', el), rOut = $('.mesh-r', el);
+    var countEl = $('.mesh-count', el), flatEl = $('.mesh-flat', el);
+    var mesh = CU.buildTriMesh(q, q === 6 ? 4 : q === 5 ? 3 : 2);
+    var pos = CU.relaxMesh(mesh, CU.meshSeedPositions(mesh), q === 7 ? 40 : 400, q === 6, 0);
+    var tris = CU.meshTriangles(mesh);
+    var dist = CU.bfs(mesh.adj, mesh.center), counts = CU.ballCounts(mesh.adj, mesh.center, q === 7 ? 2 : 3), FLAT = [1, 7, 19, 37];
+    var rot = { yaw: 0.4, pitch: q === 6 ? -1.0 : q === 5 ? -0.35 : -0.75, touched: 0 }, r = 2, view, maxR = 0, i;
+    for (i = 0; i < mesh.count; i++) maxR = Math.max(maxR, Math.sqrt(pos[3 * i] * pos[3 * i] + pos[3 * i + 1] * pos[3 * i + 1] + pos[3 * i + 2] * pos[3 * i + 2]));
+    function layout() { view = sizeCanvas(canvas, narrow() ? 230 : 240); draw(); }
+    function draw() {
+      if (!view) return;
+      var ctx = view.ctx; clear(view, C.ink2);
+      var s = Math.min(view.w, view.h) / (2 * maxR) * (q === 5 ? 0.86 : 0.92), pts = [], k, a, b, p;
+      for (i = 0; i < mesh.count; i++) { p = project(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2], rot); pts.push({ x: view.w / 2 + p[0] * s, y: view.h / 2 - p[1] * s, z: p[2] }); }
+      /* faces, painted back to front so the mesh reads as a surface */
+      var order3 = tris.map(function (t, idx) { return { idx: idx, z: pts[t[0]].z + pts[t[1]].z + pts[t[2]].z }; }).sort(function (u, v) { return u.z - v.z; });
+      for (k = 0; k < order3.length; k++) {
+        var t = tris[order3[k].idx], d3 = clamp(order3[k].z / (3 * maxR) + 0.5, 0, 1);
+        var inBall = dist[t[0]] <= r && dist[t[1]] <= r && dist[t[2]] <= r;
+        ctx.fillStyle = inBall ? 'rgba(255,181,71,' + (0.16 + 0.2 * d3) + ')' : 'rgba(243,235,221,' + (0.05 + 0.1 * d3) + ')';
+        ctx.beginPath(); ctx.moveTo(pts[t[0]].x, pts[t[0]].y); ctx.lineTo(pts[t[1]].x, pts[t[1]].y); ctx.lineTo(pts[t[2]].x, pts[t[2]].y); ctx.closePath(); ctx.fill();
+      }
+      for (i = 0; i < mesh.count; i++) for (k = 0; k < mesh.adj[i].length; k++) {
+        var j = mesh.adj[i][k]; if (j < i) continue;
+        a = pts[i]; b = pts[j];
+        var inside = dist[i] <= r && dist[j] <= r, depth = (a.z + b.z) / (2 * maxR);
+        ctx.strokeStyle = inside ? 'rgba(255,181,71,' + (0.55 + 0.4 * clamp(depth + 0.5, 0, 1)) + ')' : 'rgba(243,235,221,' + (0.1 + 0.18 * clamp(depth + 0.5, 0, 1)) + ')';
+        ctx.lineWidth = inside ? 1.6 : 1;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      var order = pts.map(function (p, idx) { return idx; }).sort(function (u, v) { return pts[u].z - pts[v].z; });
+      for (k = 0; k < order.length; k++) {
+        i = order[k]; a = pts[i];
+        var depth2 = 0.5 + 0.5 * clamp(a.z / maxR + 0.5, 0, 1);
+        if (i === mesh.center) { dot(ctx, a.x, a.y, 9, 'rgba(255,213,138,0.3)'); dot(ctx, a.x, a.y, 5.5, C.accent2); }
+        else if (dist[i] <= r) dot(ctx, a.x, a.y, 4.2, 'rgba(255,181,71,' + depth2 + ')');
+        else dot(ctx, a.x, a.y, 3, 'rgba(185,178,164,' + (0.45 * depth2 + 0.1) + ')');
+      }
+    }
+    function update() {
+      rOut.value = r; countEl.textContent = counts[r];
+      flatEl.textContent = q === 6 ? 'this is the flat reference' : 'flat would be ' + FLAT[r];
+      draw();
+    }
+    dragRotate(canvas, rot, draw);
+    range.addEventListener('input', function () { r = +range.value; update(); });
+    var spin = loop(canvas, function () {
+      if (reduceMotion) return false;
+      if (Date.now() - rot.touched > 4000) { rot.yaw += (q === 6 ? 0.0025 : 0.004); draw(); }
+    });
+    layout(); update(); spin.start(); relayouts.push(layout);
+  });
+
+  /* ============================================================
+     Scene 4C: two walkers on a globe
+     ============================================================ */
+  (function () {
+    var canvas = $('#globe-canvas'), play = $('#globe-play'), range = $('#globe-range'), latOut = $('#globe-lat'), gapEl = $('#globe-gap');
+    var lat = 0, view, LON = 16, rot = { yaw: 0, pitch: -0.42 };
+    function layout() { view = sizeCanvas(canvas, narrow() ? 280 : 340); draw(); }
+    function P(la, lo) { var p = CU.sphereXYZ(la, lo), q = project(p[0], p[1], p[2], rot); return q; }
+    function draw() {
+      if (!view) return;
+      var ctx = view.ctx, w = view.w, h = view.h, R = Math.min(w, h) / 2 - 18, ox = w / 2, oy = h / 2 + 6; clear(view);
+      var g = ctx.createRadialGradient(ox - R * 0.4, oy - R * 0.45, R * 0.1, ox, oy, R);
+      g.addColorStop(0, '#2b3a63'); g.addColorStop(1, '#0f1730');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ox, oy, R, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(243,235,221,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+      function polyline(points, style, width, dash) {
+        ctx.strokeStyle = style; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath();
+        var pen = false;
+        for (var i = 0; i < points.length; i++) {
+          var p = points[i];
+          if (p[2] < 0) { pen = false; continue; }
+          var x = ox + p[0] * R, y = oy - p[1] * R;
+          if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      var eq = [], i; for (i = -180; i <= 180; i += 3) eq.push(P(0, i));
+      polyline(eq, 'rgba(243,235,221,0.35)', 1, [4, 4]);
+      var grid = [];
+      for (var lo = -150; lo <= 180; lo += 30) { grid = []; for (i = -90; i <= 90; i += 3) grid.push(P(i, lo)); polyline(grid, 'rgba(243,235,221,0.08)', 1); }
+      [-LON, LON].forEach(function (lon) {
+        var full = [], walked = [];
+        for (i = 0; i <= 90; i += 1.5) full.push(P(i, lon));
+        for (i = 0; i <= lat; i += 1.5) walked.push(P(i, lon));
+        walked.push(P(lat, lon));
+        polyline(full, 'rgba(255,213,138,0.25)', 1.2);
+        polyline(walked, C.accent, 2.4);
+      });
+      var gapLine = []; for (i = -LON; i <= LON; i += 2) gapLine.push(P(lat, i));
+      polyline(gapLine, 'rgba(255,213,138,0.9)', 1.5, [3, 3]);
+      var pole = P(90, 0); if (pole[2] >= 0) { dot(ctx, ox + pole[0] * R, oy - pole[1] * R, 3.5, C.paper); ctx.fillStyle = C.paperDim; ctx.font = '11px IBM Plex Mono, monospace'; ctx.textAlign = 'center'; ctx.fillText('North Pole', ox + pole[0] * R, oy - pole[1] * R - 10); }
+      [-LON, LON].forEach(function (lon) { var p = P(lat, lon); if (p[2] >= 0) { dot(ctx, ox + p[0] * R, oy - p[1] * R, 8, 'rgba(255,181,71,0.3)'); dot(ctx, ox + p[0] * R, oy - p[1] * R, 5, C.accent2); } });
+    }
+    function update() {
+      range.value = Math.round(lat); latOut.value = Math.round(lat) + '°';
+      var gap = CU.walkerGap(lat);
+      gapEl.textContent = 'Gap: ' + gap.toFixed(2) + ' mile' + (gap > 0.005 ? '' : ' — they meet at the pole, and neither of them ever turned.');
+      draw();
+    }
+    var walk = loop(canvas, function () {
+      lat += 0.45;
+      if (lat >= 90) { lat = 90; update(); play.textContent = 'Walk again'; return false; }
+      update();
+    });
+    function startWalk() {
+      if (reduceMotion) { lat = 90; update(); play.textContent = 'Walk again'; return; }
+      if (lat >= 90) lat = 0;
+      play.textContent = 'Walking…'; walk.start();
+    }
+    play.addEventListener('click', function () { if (walk.running()) { walk.stop(); play.textContent = 'Walk north'; } else startWalk(); });
+    range.addEventListener('input', function () { walk.stop(); play.textContent = 'Walk north'; lat = +range.value; update(); });
+    $('#g4b').addEventListener('revealed', function () { lat = 0; startWalk(); });
+    layout(); update(); relayouts.push(layout);
+  })();
+
+  /* ============================================================
+     Scene 5: multiway graph
+     ============================================================ */
+  (function () {
+    var svg = $('#mw-svg'), wrap = $('#mw-wrap'), readout = $('#mw-readout');
+    var NS = 'http://www.w3.org/2000/svg', layers = CU.multiway([['A', 'AB'], ['B', 'A']], 'A', 7);
+    var gen = 0, lit = null;
+    function maxGen() { return wrap.clientWidth >= 640 ? 6 : 5; }
+    function el(name, attrs, parent) {
+      var e = document.createElementNS(NS, name);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(e);
+      return e;
+    }
+    function render() {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      var width = Math.max(wrap.clientWidth, 300), cols = gen + 1, margin = 8, colW = (width - 2 * margin) / cols;
+      var pillW = Math.min(colW - 10, 104), pillH = 44, rowStep = 54, top = 26, g, i, maxRows = 1;
+      for (g = 0; g <= gen; g++) maxRows = Math.max(maxRows, layers[g].states.length);
+      var height = top + maxRows * rowStep;
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+      svg.style.height = height + 'px';
+      /* row order: keep each state near the states that lead to it */
+      var rows = [[0]];
+      for (g = 1; g <= gen; g++) {
+        var L = layers[g], keys = L.states.map(function (s, idx) {
+          var sum = 0, preds = L.preds[idx];
+          for (var k = 0; k < preds.length; k++) sum += rows[g - 1][preds[k]];
+          return { idx: idx, key: preds.length ? sum / preds.length : 0 };
+        });
+        keys.sort(function (a, b) { return a.key - b.key || a.idx - b.idx; });
+        var rowOf = new Array(L.states.length);
+        keys.forEach(function (kv, pos) { rowOf[kv.idx] = pos; });
+        rows.push(rowOf);
+      }
+      function xy(gg, idx) {
+        var m = layers[gg].states.length;
+        return { x: margin + gg * colW + colW / 2, y: top + (maxRows - m) / 2 * rowStep + rows[gg][idx] * rowStep + pillH / 2 };
+      }
+      var anc = lit ? CU.multiwayAncestors(layers, lit.g, lit.i) : null;
+      var ancEdges = {};
+      if (anc) anc.edges.forEach(function (e) { ancEdges[e[0] + ':' + e[1] + '>' + e[2] + ':' + e[3]] = true; });
+      var edgesG = el('g', {}, svg), nodesG = el('g', {}, svg);
+      for (g = 0; g <= gen; g++) {
+        el('text', { x: margin + g * colW + colW / 2, y: 14, 'text-anchor': 'middle', 'class': 'gen' }, svg).textContent = 'gen ' + g;
+        for (i = 0; i < layers[g].states.length; i++) {
+          var p = xy(g, i);
+          if (g > 0) layers[g].preds[i].forEach(function (pi) {
+            var q = xy(g - 1, pi), x1 = q.x + pillW / 2, x2 = p.x - pillW / 2, cxm = (x1 + x2) / 2;
+            var cls = 'edge' + (anc ? (ancEdges[(g - 1) + ':' + pi + '>' + g + ':' + i] ? ' lit' : ' dim') : '');
+            el('path', { d: 'M' + x1 + ' ' + q.y + ' C' + cxm + ' ' + q.y + ' ' + cxm + ' ' + p.y + ' ' + x2 + ' ' + p.y, 'class': cls }, edgesG);
+          });
+          var ways = layers[g].ways[i], merged = ways >= 2;
+          var cls2 = 'node' + (merged ? ' merged' : '') + (anc ? (anc.nodes[g + ':' + i] ? ' lit' : ' dim') : '');
+          var node = el('g', { 'class': cls2, tabindex: '0', role: 'button', 'data-g': g, 'data-i': i,
+            'aria-label': 'State ' + layers[g].states[i] + ', generation ' + g + (merged ? ', reached from ' + ways + ' earlier states' : '') + '. Activate to light up every path to it.' }, nodesG);
+          el('rect', { x: p.x - pillW / 2, y: p.y - pillH / 2, width: pillW, height: pillH, rx: 9 }, node);
+          var t = el('text', { x: p.x, y: p.y + 4, 'text-anchor': 'middle', 'font-size': pillW < 62 ? 9.5 : 11 }, node);
+          t.textContent = layers[g].states[i];
+          if (merged) {
+            var bg = el('g', { 'class': 'badge' }, node);
+            el('rect', { x: p.x + pillW / 2 - 16, y: p.y - pillH / 2 - 7, width: 22, height: 14, rx: 7 }, bg);
+            el('text', { x: p.x + pillW / 2 - 5, y: p.y - pillH / 2 + 4, 'text-anchor': 'middle' }, bg).textContent = '×' + ways;
+          }
+          (function (gg, ii) {
+            var act = function () { lit = (lit && lit.g === gg && lit.i === ii) ? null : { g: gg, i: ii }; render(); describe(); };
+            node.addEventListener('click', act);
+            node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } });
+          })(g, i);
+        }
+      }
+      if (lit) { var focusEl = svg.querySelector('.node[data-g="' + lit.g + '"][data-i="' + lit.i + '"]'); if (focusEl && document.activeElement && document.activeElement.closest && document.activeElement.closest('#mw-svg')) focusEl.focus(); }
+    }
+    function describe() {
+      var L = layers[gen], m = L.states.length, merged = [];
+      for (var i = 0; i < m; i++) if (L.ways[i] >= 2) merged.push(L.states[i] + ' (' + L.ways[i] + ' ways)');
+      if (lit) {
+        var anc = CU.multiwayAncestors(layers, lit.g, lit.i), n = Object.keys(anc.nodes).length;
+        readout.textContent = 'Every path from A to ' + layers[lit.g].states[lit.i] + ' is lit: ' + n + ' states and ' + anc.edges.length + ' arrows' + (layers[lit.g].ways[lit.i] >= 2 ? '. Different orders of the same two rules meet up again here: a merge.' : '.');
+        return;
+      }
+      if (gen === 0) { readout.textContent = 'Generation 0: one state, A. Press Next generation.'; return; }
+      var s = 'Generation ' + gen + ': ' + m + ' state' + (m === 1 ? '' : 's') + '. ';
+      if (!merged.length) s += 'Every state has exactly one way in so far.';
+      else if (merged.length <= 3) s += merged.join(', ') + ' can be reached from more than one earlier state: branches merging.';
+      else s += merged.length + ' of them can be reached from more than one earlier state. The branches keep merging as fast as they split.';
+      if (gen >= maxGen()) s += ' That is as far as this screen can show. The number of states follows the Fibonacci sequence: 1, 1, 2, 3, 5, 8, 13, 21, 34…';
+      readout.textContent = s;
+    }
+    $('#mw-next').addEventListener('click', function () { if (gen < maxGen()) { gen++; lit = null; render(); describe(); } });
+    $('#mw-back').addEventListener('click', function () { if (gen > 0) { gen--; lit = null; render(); describe(); } });
+    $('#mw-reset').addEventListener('click', function () { gen = 0; lit = null; render(); describe(); });
+    render(); describe();
+    relayouts.push(function () { if (gen > maxGen()) gen = maxGen(); render(); describe(); });
+  })();
+
+  /* ============================================================
+     Scene 6: magic coins
+     ============================================================ */
+  (function () {
+    var N = 5, target = [1, 0, 1, 1, 0], yours = [], attempts = 0, spelled = 0, compared = false;
+    var targetRow = $('#target-row'), yourRow = $('#your-row'), friendRow = $('#friend-row');
+    var readout = $('#coin-readout'), stats = $('#coin-stats'), compareBtn = $('#compare'), flipAll = $('#flip-all');
+    var tBtns = [], yBtns = [], fBtns = [], i;
+    function face(b, v) { b.textContent = v === 1 ? 'H' : 'T'; b.classList.remove('h', 't', 'unknown', 'noise'); b.classList.add(v === 1 ? 'h' : 't'); }
+    function seq(arr) { return arr.map(function (v) { return v === 1 ? 'H' : 'T'; }).join(' '); }
+    for (i = 0; i < N; i++) (function (k) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'coin'; face(b, target[k]);
+      b.setAttribute('aria-label', 'Message coin ' + (k + 1) + ': ' + (target[k] ? 'heads' : 'tails') + '. Press to change.');
+      b.addEventListener('click', function () { target[k] ^= 1; face(b, target[k]); b.setAttribute('aria-label', 'Message coin ' + (k + 1) + ': ' + (target[k] ? 'heads' : 'tails') + '. Press to change.'); if (yours.length === N) summarize(); });
+      targetRow.appendChild(b); tBtns.push(b);
+      var y = document.createElement('button'); y.type = 'button'; y.className = 'coin unknown'; y.textContent = '?';
+      y.setAttribute('aria-label', 'Your coin ' + (k + 1) + ', not flipped yet. Press to flip.');
+      y.addEventListener('click', function () { if (yours[k] === undefined) flipOne(k); });
+      yourRow.appendChild(y); yBtns.push(y);
+      var f = document.createElement('button'); f.type = 'button'; f.className = 'coin noise'; f.textContent = '~'; f.disabled = true;
+      f.setAttribute('aria-label', 'Friend coin ' + (k + 1) + ': hidden until you compare notes.');
+      friendRow.appendChild(f); fBtns.push(f);
+    })(i);
+    function flipOne(k) {
+      var v = trueRandom() < 0.5 ? 0 : 1; yours[k] = v;
+      var b = yBtns[k]; face(b, v); b.classList.remove('flip'); void b.offsetWidth; b.classList.add('flip');
+      b.setAttribute('aria-label', 'Your coin ' + (k + 1) + ': ' + (v ? 'heads' : 'tails'));
+      if (yours.filter(function (x) { return x !== undefined; }).length === N) { attempts++; summarize(); }
+      else readout.textContent = 'Coin ' + (k + 1) + ' landed ' + (v ? 'heads' : 'tails') + '. You had no say in that.';
+    }
+    function summarize() {
+      var m = CU.countMatches(yours, target);
+      if (m === N && !compared) spelled++;
+      readout.innerHTML = 'Your coins: <strong>' + seq(yours) + '</strong>. Your message: ' + seq(target) + '. Matches in ' + m + ' of 5 places' + (m === N ? '. A fluke: about 1 try in 32 does that.' : ': no better than chance.');
+      stats.textContent = 'Attempts: ' + attempts + ' · times your coins spelled your message: ' + spelled;
+      compareBtn.disabled = false;
+      compared = true;
+    }
+    flipAll.addEventListener('click', function () { for (var k = 0; k < N; k++) if (yours[k] === undefined) flipOne(k); });
+    compareBtn.addEventListener('click', function () {
+      for (var k = 0; k < N; k++) { face(fBtns[k], yours[k]); fBtns[k].classList.add('match'); yBtns[k].classList.add('match'); fBtns[k].setAttribute('aria-label', 'Friend coin ' + (k + 1) + ': ' + (yours[k] ? 'heads' : 'tails') + ', same as yours'); }
+      readout.innerHTML = 'Compare notes: your friend\'s coins read <strong>' + seq(yours) + '</strong> too. 5 of 5 match. They always do. But look at that row before the call: pure noise, no message in it.';
+      compareBtn.disabled = true;
+    });
+    $('#try-again').addEventListener('click', function () {
+      yours = []; compared = false;
+      for (var k = 0; k < N; k++) {
+        yBtns[k].className = 'coin unknown'; yBtns[k].textContent = '?'; yBtns[k].setAttribute('aria-label', 'Your coin ' + (k + 1) + ', not flipped yet. Press to flip.');
+        fBtns[k].className = 'coin noise'; fBtns[k].textContent = '~'; fBtns[k].setAttribute('aria-label', 'Friend coin ' + (k + 1) + ': hidden until you compare notes.');
+      }
+      compareBtn.disabled = true; readout.textContent = 'Fresh coins. Flip them.';
+    });
+  })();
+
+  /* ============================================================
+     Scene 7: the wall of rules
+     ============================================================ */
+  (function () {
+    var canvas = $('#wall-canvas'), view, tiles = [], cols, rowsN = 3, tw, th, last = 0;
+    var CW = 64, CH = 40, GAP = 6;
+    var RULES = [30, 110, 90, 54, 73, 150, 45, 22, 126, 60, 105, 184, 18, 62, 146, 86, 169, 225, 57, 41, 37, 94, 122, 129];
+    function layout() {
+      var cssW = canvas.clientWidth || 320;
+      cols = cssW < 480 ? 3 : cssW < 760 ? 4 : 6;
+      tw = (cssW - (cols - 1) * GAP) / cols; th = tw * CH / CW;
+      view = sizeCanvas(canvas, rowsN * th + (rowsN - 1) * GAP);
+      tiles = [];
+      var rng = CU.mulberry32(2024);
+      for (var k = 0; k < cols * rowsN; k++) {
+        var rule = RULES[k % RULES.length], off = document.createElement('canvas'); off.width = CW; off.height = CH;
+        var octx = off.getContext('2d'), img = octx.createImageData(CW, CH);
+        var t = { rule: rule, bits: CU.ruleToBits(rule), row: CU.randomRow(CW, rng), off: off, octx: octx, img: img, buf: [] };
+        for (var y = 0; y < CH; y++) { t.buf.push(t.row); t.row = CU.caStep(t.row, t.bits); }
+        tiles.push(t);
+      }
+      paintAll();
+    }
+    function paintTile(t) {
+      var d = t.img.data;
+      for (var y = 0; y < CH; y++) { var row = t.buf[y]; for (var x = 0; x < CW; x++) { var i = 4 * (y * CW + x), on = row[x]; d[i] = on ? 243 : 10; d[i + 1] = on ? 235 : 15; d[i + 2] = on ? 221 : 31; d[i + 3] = 255; } }
+      t.octx.putImageData(t.img, 0, 0);
+    }
+    function paintAll() {
+      var ctx = view.ctx; clear(view); ctx.imageSmoothingEnabled = false;
+      ctx.font = '600 10px IBM Plex Mono, monospace'; ctx.textAlign = 'left';
+      for (var k = 0; k < tiles.length; k++) {
+        var t = tiles[k], x = (k % cols) * (tw + GAP), y = Math.floor(k / cols) * (th + GAP);
+        paintTile(t);
+        ctx.drawImage(t.off, x, y, tw, th);
+        ctx.fillStyle = 'rgba(10,15,31,0.75)'; ctx.fillRect(x, y, 56, 15);
+        ctx.fillStyle = C.accent2; ctx.fillText('Rule ' + t.rule, x + 4, y + 11);
+      }
+    }
+    var lp = loop(canvas, function (ts) {
+      if (reduceMotion) return false;
+      if (ts - last < 70) return;
+      last = ts;
+      for (var k = 0; k < tiles.length; k++) { var t = tiles[k]; t.buf.shift(); t.buf.push(t.row); t.row = CU.caStep(t.row, t.bits); }
+      paintAll();
+    });
+    layout(); lp.start(); relayouts.push(layout);
+  })();
+
+  /* ============================================================
+     Scene 8: the bar
+     ============================================================ */
+  $('#g8').addEventListener('revealed', function () { setTimeout(function () { $('#bar').classList.add('show'); }, 50); });
+
+  /* ---------- resize (width changes only; phone URL bars change height constantly) ---------- */
+  var lastW = window.innerWidth, timer = 0;
+  window.addEventListener('resize', function () {
+    if (Math.abs(window.innerWidth - lastW) < 2) return;
+    lastW = window.innerWidth;
+    clearTimeout(timer); timer = setTimeout(function () { relayouts.forEach(function (f) { f(); }); }, 150);
+  });
+
+  /* ---------- self-test: open the page with ?test ---------- */
+  if (/[?&]test(=[^&]*)?(&|$)/.test(window.location.search)) {
+    var res = runSelfTests(CU), bar = $('#testbar');
+    bar.style.display = 'block';
+    bar.textContent = (res.failed ? '✗ ' : '✓ ') + 'Self-test: ' + res.passed + ' passed, ' + res.failed + ' failed. Details are in the browser console.';
+    if (res.failed) bar.classList.add('fail');
+  }
+})();
+</script>
+</body>
+</html>
